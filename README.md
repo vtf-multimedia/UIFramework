@@ -68,18 +68,14 @@ public class InventoryView : UIView
 
 ```
 
-#### **UIComponent** (For Widgets)
+#### **UIComponent** 
 
 Inherit from this for interactable elements like Buttons, Cards, or Toggles. It automatically handles Pointer events (`Enter`, `Exit`, `Down`, `Up`) and Toggle value changes.
 
 ```csharp
 public class MyButton : UIComponent
 {
-    protected override void ConfigureCanvas()
-    {
-        // Components usually inherit sorting from their parent View
-        if (Canvas) Canvas.overrideSorting = false;
-    }
+    
 }
 
 ```
