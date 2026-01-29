@@ -205,3 +205,134 @@ Every state (`enter`, `exit`, `hover`, etc.) can have its own `style` target and
 }
 
 ```
+
+### 1. Style Properties
+
+These properties define the visual look of the UI element.
+
+| Category | Property | Type | Description |
+| --- | --- | --- | --- |
+| **Positioning** | `rect` | `Object` | Controls the RectTransform. |
+|  |   `anchoredPosition` | `Vector2` | The X/Y position relative to anchors (e.g., `{ "x": 10, "y": -10 }`). |
+|  |   `sizeDelta` | `Vector2` | The Width/Height offset (e.g., `{ "x": 200, "y": 50 }`). |
+|  |   `anchorMin` | `Vector2` | The normalized min anchor (0-1). |
+|  |   `anchorMax` | `Vector2` | The normalized max anchor (0-1). |
+|  |   `pivot` | `Vector2` | The normalized pivot point (0-1). |
+| **Layout** | `layoutItem` | `Object` | Controls the LayoutElement component. |
+|  |   `preferredWidth` | `float` | The preferred width for Layout Groups. |
+|  |   `preferredHeight` | `float` | The preferred height for Layout Groups. |
+|  |   `flexibleWidth` | `float` | Weight for expanding width (0 = fixed, 1+ = expand). |
+|  |   `flexibleHeight` | `float` | Weight for expanding height. |
+| **Visuals** | `backgroundColor` | `Hex` | The fill color (e.g., `"#FF0000"` or `"#FF000088"`). |
+|  | `opacity` | `float` | The CanvasGroup alpha (0.0 to 1.0). |
+|  | `radius` | `float` | Corner radius for the procedural background. |
+| **Border** | `border` | `Object` | Controls the procedural border. |
+|  |   `width` | `float` | Thickness of the border stroke. |
+|  |   `color` | `Hex` | Color of the border stroke. |
+| **Shadow** | `shadow` | `Object` | Controls the procedural drop shadow. |
+|  |   `color` | `Hex` | Shadow color (include alpha, e.g., `"#00000055"`). |
+|  |   `x` | `float` | Horizontal offset. |
+|  |   `y` | `float` | Vertical offset. |
+|  |   `softness` | `float` | Blur/spread radius of the shadow. |
+| **Text** | `textColor` | `Hex` | Color of the TextMeshPro text. |
+|  | `fontSize` | `float` | Font size of the text. |
+|  | `characterSpacing` | `float` | Spacing between characters. |
+| **Transform** | `scale` | `Vector2` | Local scale (e.g., `{ "x": 1.1, "y": 1.1 }`). |
+|  | `rotation` | `Vector3` | Local rotation Euler angles (e.g., `{ "z": 90 }`). |
+
+---
+
+### 2. Animation Configuration
+
+The `animation` block controls movement and interaction. The `repeat` logic is now a standalone section, separate from `transition` timing.
+
+#### **Root Animation Properties**
+
+| Section | Key | Type | Description |
+| --- | --- | --- | --- |
+| **Timing** | `transition` | `Object` | **Global Default Timing.** Defines duration and easing for all state changes unless overridden. |
+| **Looping** | `repeat` | `Object` | **Loop Configuration.** Controls the cycling behavior for the `initial` <-> `animate` loop. |
+
+#### **A. Transition Object**
+
+Defines *how fast* and *how smooth* the change is.
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `duration` | `float` | `0.2` | Time in seconds for the tween to complete. |
+| `delay` | `float` | `0.0` | Time to wait before starting the tween. |
+| `ease` | `string` | `"OutQuad"` | Easing function (e.g., `Linear`, `InSine`, `OutBack`, `InOutElastic`). |
+
+#### **B. Repeat Object**
+
+Defines *how* the idle animation loops.
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `cycles` | `int` | `1` | Number of times to play the loop.<br>
+
+<br>• **-1**: Infinite loop.<br>
+
+<br>• **1+**: Specific number of repeats. |
+| `cycleMode` | `string` | `"Restart"` | Behavior when a cycle ends:<br>
+
+<br>• `"Restart"`: Resets to start value.<br>
+
+<br>• `"Yoyo"`: Smoothly reverses back to start.<br>
+
+<br>• `"Incremental"`: Adds value to the end. |
+
+#### **C. Animation States**
+
+Each state can be a simple Style Object, or a Wrapper (Style + Transition).
+
+| State Key | Description | Behavior |
+| --- | --- | --- |
+| `enter` | **Entrance** | Snaps to this style on Show, then transitions to Normal/Loop. |
+| `exit` | **Exit** | Target style when Hide is called. |
+| `initial` | **Loop Start** | Point A of the idle loop. |
+| `animate` | **Loop Target** | Point B of the idle loop. |
+| `hover` | **Hover** | Active when pointer is over the element. |
+| `press` | **Press** | Active when pointer is down. |
+| `check` | **Toggle** | Active when Toggle `isOn` is true. |
+
+---
+
+### 3. Updated JSON Example
+
+```json
+"#LoaderIcon": {
+  "backgroundColor": "#333",
+  "animation": {
+    
+    // 1. GLOBAL TIMING (Duration/Ease only)
+    "transition": { 
+      "duration": 0.5, 
+      "ease": "InOutSine" 
+    },
+
+    // 2. LOOP SETTINGS (Separate from transition)
+    "repeat": { 
+      "cycles": -1, 
+      "cycleMode": "Yoyo" 
+    },
+
+    // 3. STATES
+    "initial": { 
+      "style": { "scale": { "x": 1.0, "y": 1.0 } } 
+    },
+    
+    "animate": { 
+      "style": { "scale": { "x": 1.2, "y": 1.2 } }
+      // Uses global transition (0.5s), but loop behavior comes from 'repeat'
+    },
+    
+    "hover": {
+      "style": { "backgroundColor": "#555" },
+      // Local Override: Faster transition for hover
+      "transition": { "duration": 0.1 } 
+    }
+  }
+}
+
+```
