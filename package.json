@@ -1,22 +1,12 @@
 {
   "name": "com.vtf.uiframework",
   "displayName": "UI Framework",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "unity": "2022.3",
-  "description": "A high-performance, JSON-driven UI styling and animation system powered by PrimeTween and UniTask. Features hot-reloading, procedural shapes, and a CSS-like styling architecture.",
-  "keywords": [
-    "ui",
-    "framework",
-    "procedural",
-    "animation",
-    "styling",
-    "json",
-    "tween"
-  ],
   "dependencies": {
     "com.unity.textmeshpro": "3.0.6",
-    "com.cysharp.unitask": "2.5.0",
-    "com.kyrylokuzyk.primetween": "1.3.7",
-    "com.newtonsoft.json": "3.0.2"
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#2.5.0",
+    "com.kyrylokuzyk.primetween": "https://github.com/KyryloKuzyk/PrimeTween.git?path=PrimeTween/Assets/Plugins/PrimeTween#1.3.7"
   }
 }
