@@ -23,8 +23,8 @@ namespace UIFramework
         private CanvasGroup _modalCurtain;
 
         // --- State Tracking ---
-        private UIView _currentBackground;
-        private UIView _currentScreen;
+        // private UIView _currentBackground;
+        // private UIView _currentScreen;
         private Stack<UIView> _modalStack = new Stack<UIView>();
         private List<UIView> _activeWidgets = new List<UIView>();
         
@@ -224,13 +224,13 @@ namespace UIFramework
             view.transform.SetParent(_bgRoot, false);
             view.SetSortingOrder(ORDER_BG);
 
-            var oldBg = _currentBackground;
-            _currentBackground = view;
+            // var oldBg = _currentBackground;
+            // _currentBackground = view;
 
             var showTask = view.Show();
             await showTask;
 
-            if (oldBg != null && oldBg != view) await oldBg.Hide();
+            // if (oldBg != null && oldBg != view) await oldBg.Hide();
         }
 
         private async UniTask ShowScreen(UIView view)
@@ -240,10 +240,10 @@ namespace UIFramework
             view.transform.SetParent(_screenRoot, false);
             view.SetSortingOrder(ORDER_SCREEN);
 
-            if (_currentScreen != null && _currentScreen != view) 
-                await _currentScreen.Hide();
-
-            _currentScreen = view;
+            // if (_currentScreen != null && _currentScreen != view) 
+            //     await _currentScreen.Hide();
+            //
+            // _currentScreen = view;
             await view.Show();
             
         }
