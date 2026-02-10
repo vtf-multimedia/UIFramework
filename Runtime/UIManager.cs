@@ -5,130 +5,66 @@ using Cysharp.Threading.Tasks;
 
 namespace UIFramework
 {
-    // Ensure the Manager itself is on a Canvas (or creates one)
-    [RequireComponent(typeof(Canvas))]
-    [RequireComponent(typeof(CanvasScaler))]
-    [RequireComponent(typeof(GraphicRaycaster))]
     public class UIManager : MonoBehaviour
     {
         public static UIManager Instance { get; private set; }
 
-        // --- Layers (Created at Runtime) ---
-        private RectTransform _bgRoot;
-        private RectTransform _screenRoot;
-        private RectTransform _modalRoot;
-        private RectTransform _widgetRoot;
-        
-        // --- System ---
-        private CanvasGroup _modalCurtain;
+        // --- Multi-Display Architecture ---
+        public class DisplayRoot
+        {
+            public int DisplayIndex;
+            public Canvas RootCanvas;
+            
+            public RectTransform BgRoot;
+            public RectTransform ScreenRoot;
+            public RectTransform ModalRoot;
+            public RectTransform WidgetRoot;
+            
+            public CanvasGroup ModalCurtain;
+            public Stack<UIView> ModalStack = new Stack<UIView>();
+        }
 
-        // --- State Tracking ---
-        // private UIView _currentBackground;
-        // private UIView _currentScreen;
-        private Stack<UIView> _modalStack = new Stack<UIView>();
-        private List<UIView> _activeWidgets = new List<UIView>();
-        
+        // Registry
+        private Dictionary<int, DisplayRoot> _displays = new Dictionary<int, DisplayRoot>();
+
+        // Global Cache
         private Dictionary<string, UIView> _viewCache = new Dictionary<string, UIView>();
+        private List<UIView> _activeWidgets = new List<UIView>();
 
-        // --- Z-Order Constants ---
+        // Z-Order Constants
         private const int ORDER_BG = 0;
         private const int ORDER_SCREEN = 100;
         private const int ORDER_MODAL = 1000;
         private const int ORDER_WIDGET = 2000;
 
-        private Canvas _canvas;
-
         private void Awake()
         {
             Instance = this;
-            Initialize();
-            InitializeRoots();
-            InitializeCurtain();
-        }
-
-        // ===================================================================================
-        // INITIALIZATION LOGIC (Auto-Generate Hierarchy)
-        // ===================================================================================
-
-        private void Initialize()
-        {
-            _canvas = GetComponent<Canvas>();
-            _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        }
-
-        private void InitializeRoots()
-        {
-            // 1. Background Layer (Bottom)
-            _bgRoot = CreateLayerRoot("Layer_0_Background");
             
-            // 2. Screen Layer
-            _screenRoot = CreateLayerRoot("Layer_1_Screen");
-            
-            // 3. Modal Layer
-            _modalRoot = CreateLayerRoot("Layer_2_Modal");
-            
-            // 4. Widget Layer (Top)
-            _widgetRoot = CreateLayerRoot("Layer_3_Widget");
-        }
-
-        private RectTransform CreateLayerRoot(string layerName)
-        {
-            // Create GO
-            GameObject obj = new GameObject(layerName);
-            obj.transform.SetParent(this.transform, false);
-
-            // Add RectTransform
-            RectTransform rect = obj.AddComponent<RectTransform>();
-            
-            // Stretch Logic: Min(0,0) Max(1,1)
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero; // Left/Bottom
-            rect.offsetMax = Vector2.zero; // Right/Top
-            rect.localScale = Vector3.one;
-
-            return rect;
-        }
-
-        private void InitializeCurtain()
-        {
-            // Create the dark background blocker for modals
-            GameObject curtainObj = new GameObject("System_ModalCurtain");
-            curtainObj.transform.SetParent(_modalRoot, false); // Sit inside Modal Root
-
-            // Full Stretch
-            RectTransform rect = curtainObj.AddComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            // Visuals
-            Image img = curtainObj.AddComponent<Image>();
-            img.color = new Color(0, 0, 0, 0.75f); // Semi-transparent black
-            img.raycastTarget = true; // Block clicks
-
-            // Components
-            _modalCurtain = curtainObj.AddComponent<CanvasGroup>();
-            _modalCurtain.alpha = 0f;
-            curtainObj.SetActive(false);
-            
-            // Add Canvas for Sorting
-            Canvas c = curtainObj.AddComponent<Canvas>();
-            c.overrideSorting = true;
-            c.renderMode = RenderMode.ScreenSpaceOverlay;
-            
-            curtainObj.AddComponent<GraphicRaycaster>();
+            // Generate the Main Display (Index 0) immediately as a child
+            CreateDisplayRoot(0);
         }
 
         // ===================================================================================
         // 1. PUBLIC API - GETTERS
         // ===================================================================================
 
-        public UIView GetView(string viewID)
+        public UIView GetView(string viewID, int targetDisplayIndex = 0)
         {
-            if (_viewCache.TryGetValue(viewID, out var view)) return view;
+            // 1. Check Cache
+            if (_viewCache.TryGetValue(viewID, out var view)) 
+            {
+                // Ensure it lives on the requested display if explicitly asked
+                // (Optional: You might want to skip this check if you want to support moving views later)
+                int currentDisplay = GetDisplayIndexOfView(view);
+                if (currentDisplay != targetDisplayIndex)
+                {
+                    SetViewToDisplay(view, targetDisplayIndex);
+                }
+                return view;
+            }
 
+            // 2. Load
             var prefab = Resources.Load<UIView>($"UI/Views/{viewID}");
             if (prefab == null) 
             {
@@ -136,67 +72,100 @@ namespace UIFramework
                 return null;
             }
 
+            // 3. Instantiate
             var instance = Instantiate(prefab);
             instance.name = viewID;
             instance.gameObject.SetActive(false); 
             _viewCache[viewID] = instance;
+
+            // 4. Initialize on Target Display
+            SetViewToDisplay(instance, targetDisplayIndex);
             
             return instance;
         }
 
-        public T GetView<T>(string viewID) where T : UIView
+        public T GetView<T>(string viewID, int targetDisplayIndex = 0) where T : UIView
         {
-            var view = GetView(viewID);
-            return view as T;
+            return GetView(viewID, targetDisplayIndex) as T;
         }
 
         // ===================================================================================
         // 2. PUBLIC API - SHOW
         // ===================================================================================
 
+        public async UniTask<UIView> Show(string viewID)
+        {
+            UIView view = GetView(viewID); // Defaults to existing display or 0
+            return await Show(view);
+        }
+
+        public async UniTask<T> Show<T>(string viewID) where T : UIView
+        {
+            UIView view = GetView(viewID);
+            await Show(view);
+            return view as T;
+        }
+
         public async UniTask<UIView> Show(UIView view)
         {
             if (view == null) return null;
-            await InternalRouteView(view);
-            return view;
-        }
 
-        public async UniTask<UIView> Show(string viewID)
-        {
-            UIView view = GetView(viewID);
-            if (view == null) return null;
-            await InternalRouteView(view);
-            return view;
-        }
+            // Ensure it has a valid root (in case it was unparented)
+            int displayIdx = GetDisplayIndexOfView(view);
+            if (!_displays.TryGetValue(displayIdx, out var root))
+            {
+                SetViewToDisplay(view, 0); // Fallback to Main
+                root = _displays[0];
+            }
 
-        public async UniTask<T> Show<T>(T view) where T : UIView
-        {
-            if (view == null) return null;
-            await InternalRouteView(view);
+            // --- Stack Logic ---
+            if (view.Type == ViewType.Modal)
+            {
+                if (!root.ModalStack.Contains(view))
+                {
+                    root.ModalStack.Push(view);
+                    view.SetSortingOrder(ORDER_MODAL + (root.ModalStack.Count * 10));
+                }
+                UpdateCurtain(root, true, view.Canvas.sortingOrder - 1);
+            }
+
+            await view.Show();
             return view;
         }
 
         // ===================================================================================
-        // 3. PUBLIC API - HIDE & BACK
+        // 3. PUBLIC API - MANAGEMENT
         // ===================================================================================
 
-        public async UniTask Back()
-        {
-            if (_modalStack.Count > 0) await CloseTopModal();
-        }
-
-        public async UniTask Hide(UIView view)
+        public void SetViewToDisplay(UIView view, int displayIndex)
         {
             if (view == null) return;
 
-            if (view.Type == ViewType.Modal && _modalStack.Count > 0 && _modalStack.Peek() == view)
+            // Auto-create display if missing
+            if (!_displays.TryGetValue(displayIndex, out var root))
             {
-                await CloseTopModal();
+                CreateDisplayRoot(displayIndex);
+                root = _displays[displayIndex];
             }
-            else
+
+            RectTransform targetLayer = null;
+            int baseOrder = 0;
+
+            switch (view.Type)
             {
-                await view.Hide();
+                case ViewType.Background: targetLayer = root.BgRoot; baseOrder = ORDER_BG; break;
+                case ViewType.Screen:     targetLayer = root.ScreenRoot; baseOrder = ORDER_SCREEN; break;
+                case ViewType.Modal:      targetLayer = root.ModalRoot; baseOrder = ORDER_MODAL + (root.ModalStack.Count * 10); break;
+                case ViewType.Widget:     targetLayer = root.WidgetRoot; baseOrder = ORDER_WIDGET + _activeWidgets.Count; break;
             }
+
+            if (view.transform.parent != targetLayer)
+            {
+                view.transform.SetParent(targetLayer, false);
+                ResetRectTransform(view.transform as RectTransform);
+            }
+
+            view.SetSortingOrder(baseOrder);
         }
 
         public async UniTask Hide(string viewID)
@@ -204,130 +173,168 @@ namespace UIFramework
             if (_viewCache.TryGetValue(viewID, out var view)) await Hide(view);
         }
 
-        // ===================================================================================
-        // 4. INTERNAL ROUTING LOGIC
-        // ===================================================================================
-
-        private async UniTask InternalRouteView(UIView view)
+        public async UniTask Hide(UIView view)
         {
-            switch (view.Type)
+            if (view == null) return;
+            
+            int displayIdx = GetDisplayIndexOfView(view);
+            if (_displays.TryGetValue(displayIdx, out var root))
             {
-                case ViewType.Background: await ShowBackground(view); break;
-                case ViewType.Screen:     await ShowScreen(view);     break;
-                case ViewType.Modal:      await ShowModal(view);      break;
-                case ViewType.Widget:     await ShowWidget(view);     break;
+                if (view.Type == ViewType.Modal && root.ModalStack.Count > 0 && root.ModalStack.Peek() == view)
+                {
+                    await CloseTopModal(root);
+                    return;
+                }
+            }
+
+            await view.Hide();
+        }
+
+        public async UniTask Back(int displayIndex = 0)
+        {
+            if (_displays.TryGetValue(displayIndex, out var root))
+            {
+                await CloseTopModal(root);
             }
         }
 
-        private async UniTask ShowBackground(UIView view)
+        // ===================================================================================
+        // 4. DISPLAY FACTORY
+        // ===================================================================================
+
+        private void CreateDisplayRoot(int index)
         {
-            view.transform.SetParent(_bgRoot, false);
-            view.SetSortingOrder(ORDER_BG);
+            if (_displays.ContainsKey(index)) return;
 
-            // var oldBg = _currentBackground;
-            // _currentBackground = view;
+            // 1. Create Display Object under UIManager
+            GameObject obj = new GameObject($"Display_{index + 1}_Root");
+            obj.transform.SetParent(this.transform, false); 
+            
+            // 2. Add Canvas
+            Canvas c = obj.AddComponent<Canvas>();
+            c.renderMode = RenderMode.ScreenSpaceOverlay;
+            c.targetDisplay = index; // Unity Target Display
+            
+            CanvasScaler cs = obj.AddComponent<CanvasScaler>();
+            cs.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            cs.referenceResolution = new Vector2(1920, 1080);
+            
+            obj.AddComponent<GraphicRaycaster>();
 
-            var showTask = view.Show();
-            await showTask;
-
-            // if (oldBg != null && oldBg != view) await oldBg.Hide();
+            // 3. Initialize Internal Layers
+            InitializeLayers(index, c);
         }
 
-        private async UniTask ShowScreen(UIView view)
+        private void InitializeLayers(int index, Canvas canvas)
         {
-            await CloseAllModals();
+            var root = new DisplayRoot { DisplayIndex = index, RootCanvas = canvas };
 
-            view.transform.SetParent(_screenRoot, false);
-            view.SetSortingOrder(ORDER_SCREEN);
+            root.BgRoot = CreateLayer(canvas.transform, "Layer_0_Background");
+            root.ScreenRoot = CreateLayer(canvas.transform, "Layer_1_Screen");
+            root.ModalRoot = CreateLayer(canvas.transform, "Layer_2_Modal");
+            root.WidgetRoot = CreateLayer(canvas.transform, "Layer_3_Widget");
 
-            // if (_currentScreen != null && _currentScreen != view) 
-            //     await _currentScreen.Hide();
-            //
-            // _currentScreen = view;
-            await view.Show();
-            
+            // Per-Display Curtain
+            root.ModalCurtain = CreateCurtain(root.ModalRoot);
+
+            _displays[index] = root;
         }
 
-        private async UniTask ShowModal(UIView view)
+        private RectTransform CreateLayer(Transform parent, string name)
         {
-            view.transform.SetParent(_modalRoot, false);
+            GameObject obj = new GameObject(name);
+            obj.transform.SetParent(parent, false);
             
-            // Dynamic Sort: Base + (Depth * 10)
-            int order = ORDER_MODAL + (_modalStack.Count * 10);
-            view.SetSortingOrder(order);
-
-            // Curtain goes immediately behind this modal
-            UpdateCurtain(true, order - 1);
-
-            if (!_modalStack.Contains(view)) _modalStack.Push(view);
+            RectTransform rect = obj.AddComponent<RectTransform>();
+            ResetRectTransform(rect);
             
-            await view.Show();
+            // Ignore Layout is crucial to prevent layers from stacking horizontally/vertically
+            obj.AddComponent<LayoutElement>().ignoreLayout = true;
+            
+            return rect;
         }
 
-        private async UniTask ShowWidget(UIView view)
+        private CanvasGroup CreateCurtain(Transform parent)
         {
-            view.transform.SetParent(_widgetRoot, false);
+            GameObject obj = new GameObject("System_Curtain");
+            obj.transform.SetParent(parent, false);
             
-            int order = ORDER_WIDGET + _activeWidgets.Count;
-            view.SetSortingOrder(order);
-            
-            if (!_activeWidgets.Contains(view)) _activeWidgets.Add(view);
+            RectTransform rect = obj.AddComponent<RectTransform>();
+            ResetRectTransform(rect);
 
-            _ = view.Show();
-            await UniTask.CompletedTask;
+            Image img = obj.AddComponent<Image>();
+            img.color = new Color(0, 0, 0, 0.75f);
+            img.raycastTarget = true;
+
+            CanvasGroup cg = obj.AddComponent<CanvasGroup>();
+            cg.alpha = 0;
+            obj.SetActive(false);
+
+            Canvas c = obj.AddComponent<Canvas>();
+            c.overrideSorting = true;
+            obj.AddComponent<GraphicRaycaster>();
+
+            return cg;
         }
 
         // ===================================================================================
-        // 5. HELPER LOGIC
+        // HELPERS
         // ===================================================================================
 
-        private async UniTask CloseAllModals()
+        private async UniTask CloseTopModal(DisplayRoot root)
         {
-            Stack<UIView> keepStack = new Stack<UIView>();
+            if (root.ModalStack.Count == 0) return;
 
-            while (_modalStack.Count > 0)
-            {
-                UIView modal = _modalStack.Pop(); 
-                modal.Hide(); 
-            }
-
-            while (keepStack.Count > 0) _modalStack.Push(keepStack.Pop());
-            
-            if (_modalStack.Count == 0) UpdateCurtain(false, 0);
-            else UpdateCurtain(true, _modalStack.Peek().Canvas.sortingOrder - 1);
-        }
-
-        private async UniTask CloseTopModal()
-        {
-            if (_modalStack.Count == 0) return;
-
-            UIView top = _modalStack.Pop();
+            UIView top = root.ModalStack.Pop();
             await top.Hide();
 
-            if (_modalStack.Count > 0)
+            if (root.ModalStack.Count > 0)
             {
-                UIView next = _modalStack.Peek();
-                UpdateCurtain(true, next.Canvas.sortingOrder - 1);
+                UIView next = root.ModalStack.Peek();
+                UpdateCurtain(root, true, next.Canvas.sortingOrder - 1);
             }
             else
             {
-                UpdateCurtain(false, 0);
+                UpdateCurtain(root, false, 0);
             }
         }
 
-        private void UpdateCurtain(bool active, int order)
+        private void UpdateCurtain(DisplayRoot root, bool active, int sortOrder)
         {
-            if (_modalCurtain == null) return;
-            
-            _modalCurtain.gameObject.SetActive(active);
-            _modalCurtain.alpha = active ? 1f : 0f;
-            _modalCurtain.blocksRaycasts = active;
-            
-            if (_modalCurtain.TryGetComponent<Canvas>(out var c))
+            if (root.ModalCurtain == null) return;
+            root.ModalCurtain.gameObject.SetActive(active);
+            root.ModalCurtain.alpha = active ? 1f : 0f;
+            root.ModalCurtain.blocksRaycasts = active;
+            if (active) root.ModalCurtain.GetComponent<Canvas>().sortingOrder = sortOrder;
+        }
+
+        private int GetDisplayIndexOfView(UIView view)
+        {
+            // Traverse up to find which Display Root this view belongs to
+            Transform current = view.transform.parent;
+            while (current != null)
             {
-                c.overrideSorting = true;
-                c.sortingOrder = order;
+                if (current.GetComponent<Canvas>() != null && current.parent == this.transform)
+                {
+                    // Found a root canvas that is a child of UIManager
+                    // Check our dictionary
+                    foreach(var kvp in _displays)
+                    {
+                        if (kvp.Value.RootCanvas.transform == current) return kvp.Key;
+                    }
+                }
+                current = current.parent;
             }
+            return 0; // Default to Main
+        }
+
+        private void ResetRectTransform(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.localScale = Vector3.one;
         }
     }
 }

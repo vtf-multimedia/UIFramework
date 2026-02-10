@@ -8,7 +8,7 @@ namespace UIFramework.Demo
     {
         private async void Start()
         {
-            var demoView =  UIManager.Instance.GetView<DemoView>("DemoView");
+            var demoView =  UIManager.Instance.GetView<DemoView>("DemoView", 1);
             await UniTask.WaitForSeconds(1);
             demoView.SetText("Hello world");
             await UIManager.Instance.Show(demoView);
