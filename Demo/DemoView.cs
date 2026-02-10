@@ -20,18 +20,18 @@ namespace UIFramework.Demo
 
         protected override async UniTask OnShow()
         {
-            foreach (var demoComponent in _demoComponents)
-            {
-                await demoComponent.Show();
-            }
+            // foreach (var demoComponent in _demoComponents)
+            // {
+            //     await demoComponent.Show();
+            // }
         }
 
         protected override async UniTask OnHide()
         {
-            foreach (var demoComponent in _demoComponents)
-            {
-                await demoComponent.Hide();
-            }
+            // foreach (var demoComponent in _demoComponents)
+            // {
+            //     await demoComponent.Hide();
+            // }
         }
     }
 }

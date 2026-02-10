@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 
 namespace UIFramework
 {
+    [RequireComponent(typeof(UIBase))]
     [RequireComponent(typeof(UIStyle))]
     public class UIAnimation : MonoBehaviour
     {

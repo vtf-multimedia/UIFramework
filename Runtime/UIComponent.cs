@@ -8,12 +8,14 @@ namespace UIFramework
 {
     public class UIComponent : UIBase, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
     {
+        [SerializeField] private bool _showOnAwake = true;
         private Toggle _toggle;
 
         protected override void Awake()
         {
             base.Awake();
             _toggle = GetComponent<Toggle>();
+            Show().Forget();
         }
 
         protected override void OnEnable()

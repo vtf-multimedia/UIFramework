@@ -4,6 +4,7 @@ using TMPro;
 
 namespace UIFramework
 {
+    [RequireComponent(typeof(UIBase))]
     [ExecuteAlways]
     public class UIStyle : MonoBehaviour
     {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace UIFramework
 {
+    [RequireComponent(typeof(UIBase))]
     public class UIIdentity : MonoBehaviour
     {
         [Tooltip("Unique ID for singleton lookup (e.g. 'InventoryWindow')")]
