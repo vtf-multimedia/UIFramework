@@ -5,8 +5,8 @@
   "unity": "2022.3",
   "dependencies": {
     "com.unity.textmeshpro": "3.0.6",
-    "com.unity.nuget.newtonsoft-json": "3.2.1",
-    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#2.5.0",
-    "com.kyrylokuzyk.primetween": "https://github.com/KyryloKuzyk/PrimeTween.git?path=PrimeTween/Assets/Plugins/PrimeTween#1.3.7"
+    "com.kyrylokuzyk.primetween": "1.3.7",
+    "com.unity.nuget.newtonsoft-json": "3.0.2",
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask"
   }
 }
