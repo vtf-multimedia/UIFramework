@@ -33,7 +33,7 @@ namespace UIFramework
             _rect = GetComponent<RectTransform>();
             _layout = GetComponent<LayoutElement>();
             _cg = GetComponent<CanvasGroup>();
-            _text = GetComponentInChildren<TextMeshProUGUI>();
+            _text = GetComponent<TextMeshProUGUI>();
             _baseImage = GetComponent<Image>();
             
             CaptureInitialState();
