@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using System.Numerics;
 
 namespace UIFramework
 {
@@ -30,6 +31,7 @@ namespace UIFramework
         // Global Cache
         private Dictionary<string, UIView> _viewCache = new Dictionary<string, UIView>();
         private List<UIView> _activeWidgets = new List<UIView>();
+        private Vector2 _resolution = new Vector2(1920, 1080);
 
         // Z-Order Constants
         private const int ORDER_BG = 0;
@@ -40,7 +42,10 @@ namespace UIFramework
         private void Awake()
         {
             Instance = this;
-            
+        }
+
+        private void Start()
+        {
             // Generate the Main Display (Index 0) immediately as a child
             CreateDisplayRoot(0);
         }
@@ -137,6 +142,16 @@ namespace UIFramework
         // 3. PUBLIC API - MANAGEMENT
         // ===================================================================================
 
+        public void SetResolution(Vector2 resolution)
+        {
+            _resolution = resolution;
+            foreach (var display in _displays)
+            {
+                CanvasScalar cs = display.Value.RootCanvas.GetComponent<CanvasScalar>();
+                cs.referenceResolution = resolution;
+            }
+        }
+
         public void SetViewToDisplay(UIView view, int displayIndex)
         {
             if (view == null) return;
@@ -217,7 +232,7 @@ namespace UIFramework
             
             CanvasScaler cs = obj.AddComponent<CanvasScaler>();
             cs.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            cs.referenceResolution = new Vector2(1920, 1080);
+            cs.referenceResolution = _resolution;
             
             obj.AddComponent<GraphicRaycaster>();
 
