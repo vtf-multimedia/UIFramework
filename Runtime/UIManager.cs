@@ -146,7 +146,7 @@ namespace UIFramework
             _resolution = resolution;
             foreach (var display in _displays)
             {
-                CanvasScalar cs = display.Value.RootCanvas.GetComponent<CanvasScalar>();
+                CanvasScaler cs = display.Value.RootCanvas.GetComponent<CanvasScaler>();
                 cs.referenceResolution = resolution;
             }
         }
