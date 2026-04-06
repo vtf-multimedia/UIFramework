@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using System;
 using System.Collections.Generic;
@@ -26,9 +26,45 @@ namespace UIFramework
         public UIAnimation Animation { get; private set; }
 
         // --- Child Tracking ---
-        protected List<UIBase> ChildUIComponents { get; private set; } = new List<UIBase>();
+        [SerializeField] private List<UIComponent> _uiComponents = new();
+
+        [ContextMenu("Fetch Immediate UI Components")]
+        public void FetchUIComponents()
+        {
+            _uiComponents.Clear();
+            foreach (Transform child in transform)
+            {
+                var component = child.GetComponent<UIComponent>();
+                if (component != null)
+                {
+                    _uiComponents.Add(component);
+                }
+            }
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        }
+
+        [ContextMenu("Fetch All UI Components (Deep)")]
+        public void FetchUIComponentsDeep()
+        {
+            _uiComponents.Clear();
+            _uiComponents.AddRange(GetComponentsInChildren<UIComponent>(true));
+            _uiComponents.Remove(this as UIComponent); // Remove self if this is a UIComponent
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        }
+
+        [ContextMenu("Show")]
+        public void ShowUI() => Show(false).Forget();
+
+        [ContextMenu("Hide")]
+        public void HideUI() => Hide(false).Forget();
+
 
         // --- State Flags ---
+
         public bool IsVisible { get; protected set; }
         public bool IsHovered { get; protected set; }
         public bool IsPressed { get; protected set; }
@@ -46,42 +82,18 @@ namespace UIFramework
             CanvasGroup = GetComponent<CanvasGroup>();
             StyleComponent = GetComponent<UIStyle>();
             Animation = GetComponent<UIAnimation>();
-
-            // Find all immediate UIBase children
-            FetchChildUIBases();
-
+            
             // 2. Polymorphic Setup (Views vs Components)
             ConfigureCanvas();
 
-            // 3. Default state (Hidden)
-            // Fix CS0104: Explicitly use UnityEngine.Application
+
             if (UnityEngine.Application.isPlaying)
             {
                 IsVisible = false;
                 gameObject.SetActive(false);
             }
         }
-
-        private void FetchChildUIBases()
-        {
-            ChildUIComponents.Clear();
-            // Get all nested UIBase components
-            var allChildren = GetComponentsInChildren<UIBase>(true);
-            foreach (var child in allChildren)
-            {
-                if (child == this) continue;
-
-                // Only track immediate UIBase children to avoid double-triggering grandchildren
-                var parentUI = child.transform.parent != null
-                    ? child.transform.parent.GetComponentInParent<UIBase>(true)
-                    : null;
-
-                if (parentUI == this)
-                {
-                    ChildUIComponents.Add(child);
-                }
-            }
-        }
+        
 
         protected virtual void OnEnable()
         {
@@ -137,20 +149,19 @@ namespace UIFramework
 
             // 4. User Logic Hook
             await OnShow();
-
-            // 5. Play Animation
-            // Create tasks for all children to show simultaneously
-            IEnumerable<UniTask> childTasks = ChildUIComponents.Select(c => c.Show(instant));
-
+            
             if (instant)
             {
                 Animation.PlayState("normal");
-                await UniTask.WhenAll(childTasks);
             }
             else
             {
                 // Play container animation and children simultaneously
-                await UniTask.WhenAll(Animation.PlayShow(), UniTask.WhenAll(childTasks));
+                Animation.PlayShow();
+            }
+            foreach (var uiComponent in _uiComponents)
+            {
+                await uiComponent.Show(instant);
             }
         }
 
@@ -160,9 +171,10 @@ namespace UIFramework
 
             IsVisible = false;
 
-            // Cascade hide to children first so they animate out before parent disappears
-            IEnumerable<UniTask> childTasks = ChildUIComponents.Select(c => c.Hide(instant));
-            await UniTask.WhenAll(childTasks);
+            foreach (var uiComponent in _uiComponents)
+            {
+                await uiComponent.Hide(instant);
+            }
 
             // 1. User Logic Hook
             await OnHide();

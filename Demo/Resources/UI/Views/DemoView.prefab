@@ -134,7 +134,7 @@ MonoBehaviour:
     ShadowColor: {r: 0, g: 0, b: 0, a: 0}
     ShadowOffset: {x: 0, y: 0}
     ShadowSoftness: 1
-    TextColor: {r: 1, g: 1, b: 1, a: 1}
+    TextColor: {r: 0, g: 0, b: 0, a: 1}
     FontSize: 14
     CharacterSpacing: 0
     Scale: {x: 1, y: 1}
@@ -157,7 +157,7 @@ MonoBehaviour:
     ShadowColor: {r: 0, g: 0, b: 0, a: 0}
     ShadowOffset: {x: 0, y: 0}
     ShadowSoftness: 1
-    TextColor: {r: 1, g: 1, b: 1, a: 1}
+    TextColor: {r: 0, g: 0, b: 0, a: 1}
     FontSize: 14
     CharacterSpacing: 0
     Scale: {x: 1, y: 1}
@@ -218,10 +218,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c14eaf5af9d740868e51575432ece1c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _text: {fileID: 1601971102383846487}
-  _demoComponents:
+  _uiComponents:
   - {fileID: 4617075505509883557}
   - {fileID: 3274828375892528851}
+  _text: {fileID: 1601971102383846487}
+  _demoComponents: []
 --- !u!1 &5511624488147971562
 GameObject:
   m_ObjectHideFlags: 0
@@ -446,6 +447,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1107303815099966353, guid: 04e6703e28e086e409ac28b5fee4edaf, type: 3}
+      propertyPath: _showOnAwake
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1379521822204076278, guid: 04e6703e28e086e409ac28b5fee4edaf, type: 3}
       propertyPath: m_Name
       value: DemoComponent (1)
@@ -565,7 +570,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1107303815099966353, guid: 04e6703e28e086e409ac28b5fee4edaf, type: 3}
       propertyPath: _showOnAwake
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1379521822204076278, guid: 04e6703e28e086e409ac28b5fee4edaf, type: 3}
       propertyPath: m_Name
