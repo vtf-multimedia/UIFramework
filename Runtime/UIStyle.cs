@@ -192,6 +192,9 @@ namespace UIFramework
 
                 Color tint = (_bgSprite != null) ? Color.white : s.BackgroundColor;
                 UpdateMat(_bgLayer, _bgMat, tint, s.Radius, s.BorderWidth, s.BorderColor, s);
+                _bgMat.SetFloat("_EdgeSoftness", 1f);
+                _bgMat.SetFloat("_Margin", 0f);
+                
                 if (_baseImage && _baseImage.enabled) _baseImage.enabled = false;
             } else {
                 if (_bgLayer && _bgLayer.gameObject.activeSelf) _bgLayer.gameObject.SetActive(false);

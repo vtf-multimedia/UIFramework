@@ -12,23 +12,17 @@ namespace UIFramework
         [UnityEngine.Serialization.FormerlySerializedAs("Classes")]
         [SerializeField] private List<string> _classes = new();
 
-        public string ID
-        {
-            set
-            {
-                _id = value;
-                OnUpdateIdentity?.Invoke();
-            }
-            get
-            {
-                return _id;
-            }
-        }
+        public string ID => _id;
 
-        public List<string> Classes { get; }
+        public List<string> Classes => _classes;
 
         public Action OnUpdateIdentity;
         
+        public void SetID(string id)
+        {
+            _id = id; 
+            OnUpdateIdentity?.Invoke();
+        }
         public void AddClass(string className)
         {
             _classes.Add(className);

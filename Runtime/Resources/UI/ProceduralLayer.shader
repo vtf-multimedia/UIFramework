@@ -84,22 +84,31 @@ Shader "UI/ProceduralLayer"
             fixed4 frag(v2f IN) : SV_Target {
                 float2 uv = IN.texcoord - 0.5;
                 float2 pixelPos = uv * float2(_Width, _Height);
-                float2 boxSize = float2(_Width / 2.0, _Height / 2.0) - _Margin;
+                float2 halfSize = float2(_Width, _Height) * 0.5 - _Margin;
 
-                float dist = sdRoundBox(pixelPos, boxSize, _Radius);
-                float halfSoft = _EdgeSoftness * 0.5;
-                float alpha = 1.0 - smoothstep(-halfSoft, halfSoft, dist);
+                float dist = sdRoundBox(pixelPos, halfSize, _Radius);
+                
+                // Anti-aliasing width
+                float aa = max(_EdgeSoftness, 0.001);
+                float halfAa = aa * 0.5;
 
-                float borderAlpha = 0;
-                if (_BorderWidth > 0) {
-                    float innerDist = dist + _BorderWidth; 
-                    float innerShape = 1.0 - smoothstep(-0.5, 0.5, innerDist);
-                    borderAlpha = alpha - innerShape;
-                }
+                // Outer alpha (shape of the box)
+                float alpha = 1.0 - smoothstep(-halfAa, halfAa, dist);
 
                 fixed4 texColor = tex2D(_MainTex, IN.texcoord);
                 fixed4 fill = texColor * IN.color; 
-                fixed4 finalColor = lerp(fill, _BorderColor, step(0.5, borderAlpha));
+                
+                fixed4 finalColor = fill;
+
+                if (_BorderWidth > 0.001) {
+                    // Inner alpha (shape of the inside of the border)
+                    float innerDist = dist + _BorderWidth;
+                    float innerAlpha = 1.0 - smoothstep(-halfAa, halfAa, innerDist);
+                    
+                    // Blend from border color to fill color
+                    finalColor = lerp(_BorderColor, fill, innerAlpha);
+                }
+
                 finalColor.a *= alpha;
                 finalColor.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);
                 
