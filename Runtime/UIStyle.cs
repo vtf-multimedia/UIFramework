@@ -48,12 +48,8 @@ namespace UIFramework
             InitialInspectorState = StyleState.Default;
             
             if (_rect) {
-                InitialInspectorState.AnchoredPosition = _rect.anchoredPosition;
                 InitialInspectorState.SizeDelta = _rect.sizeDelta;
                 InitialInspectorState.Scale = _owner.transform.localScale;
-                InitialInspectorState.AnchorMin = _rect.anchorMin;
-                InitialInspectorState.AnchorMax = _rect.anchorMax;
-                InitialInspectorState.Pivot = _rect.pivot;
             }
             if (_layout) {
                 InitialInspectorState.PreferredWidth = _layout.preferredWidth;
@@ -85,11 +81,7 @@ namespace UIFramework
 
             if (_rect)
             {
-                if (_rect.anchoredPosition != s.AnchoredPosition) _rect.anchoredPosition = s.AnchoredPosition;
                 if (_rect.sizeDelta != s.SizeDelta) _rect.sizeDelta = s.SizeDelta;
-                if (_rect.anchorMin != s.AnchorMin) _rect.anchorMin = s.AnchorMin;
-                if (_rect.anchorMax != s.AnchorMax) _rect.anchorMax = s.AnchorMax;
-                if (_rect.pivot != s.Pivot) _rect.pivot = s.Pivot;
                 if (_owner.transform.localScale.x != s.Scale.x) _owner.transform.localScale = s.Scale;
                 if (_owner.transform.localEulerAngles != s.Rotation) _owner.transform.localEulerAngles = s.Rotation;
             }

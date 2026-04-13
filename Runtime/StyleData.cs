@@ -111,11 +111,7 @@ namespace UIFramework
         // Transform / Rect
         public Vector2 Scale; 
         public Vector3 Rotation;
-        public Vector2 AnchoredPosition; 
         public Vector2 SizeDelta;
-        public Vector2 AnchorMin;
-        public Vector2 AnchorMax;
-        public Vector2 Pivot;
 
         // Layout
         public float PreferredWidth; public float PreferredHeight;
@@ -124,8 +120,7 @@ namespace UIFramework
         public static StyleState Default => new StyleState {
             BackgroundColor = Color.clear, BorderColor = Color.clear, TextColor = Color.black,
             Scale = Vector2.one, Opacity = 1f, FontSize = 14f, ShadowSoftness = 1f,
-            PreferredWidth = -1, PreferredHeight = -1, FlexibleWidth = -1, FlexibleHeight = -1,
-            AnchorMin = new Vector2(0.5f, 0.5f), AnchorMax = new Vector2(0.5f, 0.5f), Pivot = new Vector2(0.5f, 0.5f)
+            PreferredWidth = -1, PreferredHeight = -1, FlexibleWidth = -1, FlexibleHeight = -1
         };
 
         // --- THE MISSING PIECE: CENTRALIZED MERGE ---
@@ -164,11 +159,7 @@ namespace UIFramework
             
             if (def.rect.HasValue) {
                 var r = def.rect.Value;
-                if (r.anchoredPosition.HasValue) s.AnchoredPosition = r.anchoredPosition.Value;
                 if (r.sizeDelta.HasValue) s.SizeDelta = r.sizeDelta.Value;
-                if (r.anchorMin.HasValue) s.AnchorMin = r.anchorMin.Value;
-                if (r.anchorMax.HasValue) s.AnchorMax = r.anchorMax.Value;
-                if (r.pivot.HasValue) s.Pivot = r.pivot.Value;
             }
 
             // 6. Layout
@@ -210,11 +201,7 @@ namespace UIFramework
             r.Rotation = Vector3.Lerp(a.Rotation, b.Rotation, t);
             
             // Rect
-            r.AnchoredPosition = Vector2.Lerp(a.AnchoredPosition, b.AnchoredPosition, t);
             r.SizeDelta = Vector2.Lerp(a.SizeDelta, b.SizeDelta, t);
-            r.AnchorMin = Vector2.Lerp(a.AnchorMin, b.AnchorMin, t);
-            r.AnchorMax = Vector2.Lerp(a.AnchorMax, b.AnchorMax, t);
-            r.Pivot = Vector2.Lerp(a.Pivot, b.Pivot, t);
 
             // Layout
             r.PreferredWidth = Mathf.Lerp(a.PreferredWidth, b.PreferredWidth, t);
@@ -231,11 +218,7 @@ namespace UIFramework
     [Serializable] 
     public struct RectDef 
     { 
-        public Vector2? anchoredPosition; 
         public Vector2? sizeDelta;
-        public Vector2? anchorMin;
-        public Vector2? anchorMax;
-        public Vector2? pivot;
     }
     [Serializable] public struct LayoutItemDef { public float? preferredWidth; public float? preferredHeight; public float? flexibleWidth; public float? flexibleHeight; }
     [Serializable] public struct BorderDef { public float? width; public string color; }

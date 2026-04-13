@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
@@ -42,6 +43,18 @@ namespace UIFramework.Demo
             // {
             //     await demoComponent.Hide();
             // }
+        }
+
+        private void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.I))
+            {
+                _demoComponent.Identity.SetID("demoComponent-selected");   
+            }
+            else if (Input.GetKeyDown(KeyCode.O))
+            {
+                _demoComponent.Identity.SetID("demoComponent");
+            }
         }
     }
 }
