@@ -17,7 +17,6 @@ namespace UIFramework
         private CanvasGroup _cg;
         private TextMeshProUGUI _text;
         private Image _baseImage; // The procedural BG layer
-        private Image _ownerImage; // The original image on the owner GO
         private Sprite _bgSprite;
         private string _loadedBgPath;
 
@@ -39,8 +38,6 @@ namespace UIFramework
             _layout = _owner.GetComponent<LayoutElement>();
             _cg = _owner.GetComponent<CanvasGroup>();
             _text = _owner.GetComponent<TextMeshProUGUI>();
-            _ownerImage = _owner.GetComponent<Image>();
-            _baseImage = FindOrCreateLayer("_ProceduralBG");
             
             CaptureInitialState();
             _isInitialized = true;
@@ -60,7 +57,6 @@ namespace UIFramework
                 InitialInspectorState.FlexibleWidth = _layout.flexibleWidth;
                 InitialInspectorState.FlexibleHeight = _layout.flexibleHeight;
             }
-            if (_ownerImage) InitialInspectorState.BackgroundColor = _ownerImage.color;
             if (_text) {
                 InitialInspectorState.TextColor = _text.color;
                 InitialInspectorState.FontSize = _text.fontSize;
@@ -170,7 +166,12 @@ namespace UIFramework
                 rt.anchoredPosition = s.ShadowOffset;
                 float pad = s.ShadowSoftness;
                 rt.offsetMin = new Vector2(-pad, -pad); rt.offsetMax = new Vector2(pad, pad);
-            } else if (_shadowLayer && _shadowLayer.gameObject.activeSelf) _shadowLayer.gameObject.SetActive(false);
+            } else if (_shadowLayer) {
+                UnityEngine.Object.Destroy(_shadowLayer.gameObject);
+                _shadowLayer = null;
+                if (_shadowMat) UnityEngine.Object.Destroy(_shadowMat);
+                _shadowMat = null;
+            }
 
             bool needBg = s.BackgroundColor.a > 0.001f || s.BorderWidth > 0 || !string.IsNullOrEmpty(s.BackgroundImagePath);
             if (needBg) {
@@ -197,11 +198,11 @@ namespace UIFramework
                 UpdateMat(_baseImage, _bgMat, tint, s.Radius, s.BorderWidth, s.BorderColor, s);
                 _bgMat.SetFloat("_EdgeSoftness", 1f);
                 _bgMat.SetFloat("_Margin", 0f);
-                
-                if (_ownerImage && _ownerImage.enabled) _ownerImage.enabled = false;
-            } else {
-                if (_baseImage && _baseImage.gameObject.activeSelf) _baseImage.gameObject.SetActive(false);
-                if (_ownerImage && !_ownerImage.enabled) _ownerImage.enabled = true;
+            } else if (_baseImage) {
+                UnityEngine.Object.Destroy(_baseImage.gameObject);
+                _baseImage = null;
+                if (_bgMat) UnityEngine.Object.Destroy(_bgMat);
+                _bgMat = null;
             }
         }
 
@@ -222,7 +223,7 @@ namespace UIFramework
         }
 
         private void UpdateMat(Image img, Material mat, Color col, float rad, float borderW, Color borderC, StyleState s) {
-            if(!mat) return;
+            if(!mat || !img) return;
             mat.SetColor("_Color", col); mat.SetFloat("_Radius", rad);
             mat.SetFloat("_BorderWidth", borderW); mat.SetColor("_BorderColor", borderC);
             
