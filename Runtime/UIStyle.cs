@@ -194,10 +194,14 @@ namespace UIFramework
                     _bgMat.SetTexture("_MainTex", Texture2D.whiteTexture);
                 }
 
-                Color tint = (_bgSprite != null) ? Color.white : s.BackgroundColor;
+                // Determine tint: if BackgroundColor is set (alpha > 0.001), use it; otherwise White if sprite exists
+                Color tint = (s.BackgroundColor.a > 0.001f) ? s.BackgroundColor : ((_bgSprite != null) ? Color.white : s.BackgroundColor);
                 UpdateMat(_baseImage, _bgMat, tint, s.Radius, s.BorderWidth, s.BorderColor, s);
                 _bgMat.SetFloat("_EdgeSoftness", 1f);
                 _bgMat.SetFloat("_Margin", 0f);
+                
+                _baseImage.color = tint;
+                _baseImage.SetMaterialDirty();
             } else if (_baseImage) {
                 UnityEngine.Object.Destroy(_baseImage.gameObject);
                 _baseImage = null;
@@ -223,7 +227,7 @@ namespace UIFramework
         }
 
         private void UpdateMat(Image img, Material mat, Color col, float rad, float borderW, Color borderC, StyleState s) {
-            if(!mat || !img) return;
+            if(!mat || !img || !img.rectTransform) return;
             mat.SetColor("_Color", col); mat.SetFloat("_Radius", rad);
             mat.SetFloat("_BorderWidth", borderW); mat.SetColor("_BorderColor", borderC);
             

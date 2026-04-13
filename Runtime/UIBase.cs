@@ -226,10 +226,14 @@ namespace UIFramework
                 if (elementStyle.Animation != null)
                 {
                     Animation.Setup(elementStyle.Animation);
-
-                    // Force refresh current visual state (e.g. if we were hovering, update hover color)
-                    NotifyStateChange();
                 }
+                else
+                {
+                    Animation.Setup(null);
+                }
+                
+                // Force refresh current visual state (e.g. if we were hovering, update hover color)
+                NotifyStateChange();
             }
         }
 
