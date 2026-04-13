@@ -1,9 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System;
 
 namespace UIFramework
 {
+    [Serializable]
     public class UIStyle
     {
         private readonly UIBase _owner;
@@ -81,9 +83,17 @@ namespace UIFramework
 
             if (_rect)
             {
-                if (_rect.sizeDelta != s.SizeDelta) _rect.sizeDelta = s.SizeDelta;
-                if (_owner.transform.localScale.x != s.Scale.x) _owner.transform.localScale = s.Scale;
-                if (_owner.transform.localEulerAngles != s.Rotation) _owner.transform.localEulerAngles = s.Rotation;
+                // If parent has a LayoutGroup, we don't apply positional/sizing/scale/rotation to the RectTransform
+                // as the LayoutGroup should have control over these.
+                bool isUnderLayoutGroup = _owner.transform.parent != null && _owner.transform.parent.GetComponent<LayoutGroup>() != null;
+                
+                if (!isUnderLayoutGroup)
+                {
+                    if (_rect.sizeDelta != s.SizeDelta) _rect.sizeDelta = s.SizeDelta;
+                    if (_owner.transform.localScale.x != s.Scale.x || _owner.transform.localScale.y != s.Scale.y) 
+                        _owner.transform.localScale = new Vector3(s.Scale.x, s.Scale.y, 1f);
+                    if (_owner.transform.localEulerAngles != s.Rotation) _owner.transform.localEulerAngles = s.Rotation;
+                }
             }
 
             if (_layout)

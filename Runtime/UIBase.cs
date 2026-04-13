@@ -142,7 +142,7 @@ namespace UIFramework
             gameObject.SetActive(true);
 
             // 1. Prepare
-            Animation.Stop();
+            // Animation.Stop();
 
             // 2. Apply Style (Snap visuals to "Start" state)
             RefreshStyle();
@@ -155,7 +155,7 @@ namespace UIFramework
             
             if (instant)
             {
-                Animation.PlayState("normal");
+                // Animation.PlayState("normal");
                 foreach (var uiComponent in _uiComponents)
                 {
                     await uiComponent.Show(instant);
@@ -164,7 +164,7 @@ namespace UIFramework
             else
             {
                 // Play container animation and children simultaneously
-                Animation.PlayShow();
+                // Animation.PlayShow();
                 foreach (var uiComponent in _uiComponents)
                 {
                     await uiComponent.Show(instant);
@@ -190,7 +190,7 @@ namespace UIFramework
             // 2. Play Animation
             if (!instant)
             {
-                await Animation.PlayHide();
+                // await Animation.PlayHide();
             }
 
             // 3. Deactivate
@@ -268,7 +268,7 @@ namespace UIFramework
             string key = ResolveStateKey();
 
             // Trigger Animation Tween
-            Animation.PlayState(key);
+            // Animation.PlayState(key);
         }
 
         public virtual string ResolveStateKey()
