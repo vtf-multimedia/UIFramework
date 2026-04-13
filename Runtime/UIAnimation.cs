@@ -5,15 +5,13 @@ using Cysharp.Threading.Tasks;
 
 namespace UIFramework
 {
-    [RequireComponent(typeof(UIBase))]
-    [RequireComponent(typeof(UIStyle))]
-    public class UIAnimation : MonoBehaviour
+    public class UIAnimation
     {
         private UIStyle _style;
         private AnimationDef _config;
         
         // The "Anchor" style (Inspector + Base JSON)
-        private StyleState _normalState => _style ? _style.NormalState : StyleState.Default;
+        private StyleState _normalState => _style != null ? _style.NormalState : StyleState.Default;
 
         // Tracks the background timeline (Show/Loop)
         private Tween _timelineTween;
@@ -24,7 +22,10 @@ namespace UIFramework
         private bool _isLoopingActive; // Are we supposed to be looping right now?
         private AnimationState _currentInteraction = AnimationState.Normal;
 
-        private void Awake() => _style = GetComponent<UIStyle>();
+        public UIAnimation(UIStyle style)
+        {
+            _style = style;
+        }
 
         public void Setup(AnimationDef config)
         {
@@ -82,18 +83,6 @@ namespace UIFramework
                 }
             }
         }
-
-        // private void Update()
-        // {
-        //     if (_timelineTween.isAlive)
-        //     {
-        //         Debug.Log($"{_timelineTween.isAlive}, {_timelineTween.progressTotal}, {_timelineTween.elapsedTime}, {_timelineTween.elapsedTimeTotal}");
-        //     }
-        //     else
-        //     {
-        //         Debug.Log($"{_timelineTween.isAlive}");
-        //     }
-        // }
 
         public async UniTask PlayHide()
         {

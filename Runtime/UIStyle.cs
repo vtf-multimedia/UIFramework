@@ -4,13 +4,11 @@ using TMPro;
 
 namespace UIFramework
 {
-    [RequireComponent(typeof(UIBase))]
-    [ExecuteAlways]
-    public class UIStyle : MonoBehaviour
+    public class UIStyle
     {
-        // ... (Variables for Layers/References same as before) ...
-        [SerializeField] private Image _bgLayer;
-        [SerializeField] private Image _shadowLayer;
+        private readonly UIBase _owner;
+        private Image _bgLayer;
+        private Image _shadowLayer;
         private Material _bgMat;
         private Material _shadowMat;
         private RectTransform _rect;
@@ -18,23 +16,28 @@ namespace UIFramework
         private CanvasGroup _cg;
         private TextMeshProUGUI _text;
         private Image _baseImage;
+        private Sprite _bgSprite;
+        private string _loadedBgPath;
 
-        
         public StyleState CurrentState;
         public StyleState InitialInspectorState;
         public StyleState NormalState;
         private bool _isInitialized = false;
 
-        private void Awake() { Initialize(); }
+        public UIStyle(UIBase owner)
+        {
+            _owner = owner;
+            Initialize();
+        }
 
         public void Initialize()
         {
             if (_isInitialized) return;
-            _rect = GetComponent<RectTransform>();
-            _layout = GetComponent<LayoutElement>();
-            _cg = GetComponent<CanvasGroup>();
-            _text = GetComponent<TextMeshProUGUI>();
-            _baseImage = GetComponent<Image>();
+            _rect = _owner.GetComponent<RectTransform>();
+            _layout = _owner.GetComponent<LayoutElement>();
+            _cg = _owner.GetComponent<CanvasGroup>();
+            _text = _owner.GetComponent<TextMeshProUGUI>();
+            _baseImage = _owner.GetComponent<Image>();
             
             CaptureInitialState();
             _isInitialized = true;
@@ -47,7 +50,7 @@ namespace UIFramework
             if (_rect) {
                 InitialInspectorState.AnchoredPosition = _rect.anchoredPosition;
                 InitialInspectorState.SizeDelta = _rect.sizeDelta;
-                InitialInspectorState.Scale = transform.localScale;
+                InitialInspectorState.Scale = _owner.transform.localScale;
                 InitialInspectorState.AnchorMin = _rect.anchorMin;
                 InitialInspectorState.AnchorMax = _rect.anchorMax;
                 InitialInspectorState.Pivot = _rect.pivot;
@@ -71,15 +74,8 @@ namespace UIFramework
         public void ApplyDefinition(StyleDefinition def)
         {
             if (!_isInitialized) Initialize();
-
-            // 1. Merge the definition onto our clean Inspector State
-            // This ensures we get ALL properties (Border, Shadow, Text, Rect, etc.)
             var mergedState = StyleState.Merge(InitialInspectorState, def);
-            
-            // 2. Apply it to the Unity Components
             Apply(mergedState);
-            
-            // 3. Update the baseline so animations start from here
             NormalState = mergedState; 
         }
 
@@ -87,50 +83,82 @@ namespace UIFramework
         {
             CurrentState = s;
 
-            // Rect
-            if (_rect) {
+            if (_rect)
+            {
                 if (_rect.anchoredPosition != s.AnchoredPosition) _rect.anchoredPosition = s.AnchoredPosition;
                 if (_rect.sizeDelta != s.SizeDelta) _rect.sizeDelta = s.SizeDelta;
                 if (_rect.anchorMin != s.AnchorMin) _rect.anchorMin = s.AnchorMin;
                 if (_rect.anchorMax != s.AnchorMax) _rect.anchorMax = s.AnchorMax;
                 if (_rect.pivot != s.Pivot) _rect.pivot = s.Pivot;
-                if (transform.localScale.x != s.Scale.x) transform.localScale = s.Scale;
-                if (transform.localEulerAngles != s.Rotation) transform.localEulerAngles = s.Rotation;
+                if (_owner.transform.localScale.x != s.Scale.x) _owner.transform.localScale = s.Scale;
+                if (_owner.transform.localEulerAngles != s.Rotation) _owner.transform.localEulerAngles = s.Rotation;
             }
 
-            // Layout
-            if (_layout) {
+            if (_layout)
+            {
                 _layout.preferredWidth = s.PreferredWidth;
                 _layout.preferredHeight = s.PreferredHeight;
                 _layout.flexibleWidth = s.FlexibleWidth;
                 _layout.flexibleHeight = s.FlexibleHeight;
             }
 
-            // Visuals
             if (_cg) _cg.alpha = s.Opacity;
-            if (_text) {
+            if (_text)
+            {
                 _text.color = s.TextColor;
                 if (s.FontSize > 0) _text.fontSize = s.FontSize;
-                _text.characterSpacing = s.CharacterSpacing;
+            }
+
+            if (s.BackgroundImagePath != _loadedBgPath)
+            {
+                _loadedBgPath = s.BackgroundImagePath;
+                _bgSprite = LoadSprite(_loadedBgPath);
             }
 
             UpdateProceduralLayers(s);
         }
 
-        // ... (UpdateProceduralLayers / CreateLayers methods remain the same) ...
-        // ... (UpdateMat helper remains the same) ...
-        
+        private Sprite LoadSprite(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+            
+            string fullPath = System.IO.Path.Combine(Application.streamingAssetsPath, path);
+            if (!System.IO.File.Exists(fullPath))
+            {
+                Debug.LogWarning($"Background image not found at: {fullPath}");
+                return null;
+            }
+
+            try
+            {
+                byte[] data = System.IO.File.ReadAllBytes(fullPath);
+                Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                if (tex.LoadImage(data))
+                {
+                    tex.filterMode = FilterMode.Bilinear;
+                    tex.wrapMode = TextureWrapMode.Clamp;
+                    tex.Apply();
+                    return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100, 0, SpriteMeshType.FullRect);
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Error loading background image: {e.Message}");
+            }
+            return null;
+        }
+
         private void UpdateProceduralLayers(StyleState s)
         {
-            // (Same implementation as previous step, ensuring properties like s.Radius, s.BorderWidth are used)
-            // ...
-             // 1. Shadow (Index 0)
             bool needShadow = s.ShadowColor.a > 0.001f;
             if (needShadow) {
-                if (!_shadowLayer) CreateShadowLayer();
+                if (!_shadowLayer) _shadowLayer = FindOrCreateLayer("_ProceduralShadow");
                 if (!_shadowLayer.gameObject.activeSelf) _shadowLayer.gameObject.SetActive(true);
                 if (_shadowLayer.transform.GetSiblingIndex() != 0) _shadowLayer.transform.SetAsFirstSibling();
                 
+                if (!_shadowMat) _shadowMat = new Material(Shader.Find("UI/ProceduralLayer"));
+                _shadowLayer.material = _shadowMat;
+
                 UpdateMat(_shadowLayer, _shadowMat, s.ShadowColor, s.Radius, 0, Color.clear, s);
                 _shadowMat.SetFloat("_EdgeSoftness", s.ShadowSoftness);
                 _shadowMat.SetFloat("_Margin", s.ShadowSoftness);
@@ -141,45 +169,60 @@ namespace UIFramework
                 rt.offsetMin = new Vector2(-pad, -pad); rt.offsetMax = new Vector2(pad, pad);
             } else if (_shadowLayer && _shadowLayer.gameObject.activeSelf) _shadowLayer.gameObject.SetActive(false);
 
-            // 2. BG (Index 1)
-            bool needBg = s.BackgroundColor.a > 0.001f || s.BorderWidth > 0;
+            bool needBg = s.BackgroundColor.a > 0.001f || s.BorderWidth > 0 || !string.IsNullOrEmpty(s.BackgroundImagePath);
             if (needBg) {
-                if (!_bgLayer) CreateBgLayer();
+                if (!_bgLayer) _bgLayer = FindOrCreateLayer("_ProceduralBG");
                 if (!_bgLayer.gameObject.activeSelf) _bgLayer.gameObject.SetActive(true);
                 
                 int targetIndex = (_shadowLayer && _shadowLayer.gameObject.activeSelf) ? 1 : 0;
                 if (_bgLayer.transform.GetSiblingIndex() != targetIndex) _bgLayer.transform.SetSiblingIndex(targetIndex);
 
-                UpdateMat(_bgLayer, _bgMat, s.BackgroundColor, s.Radius, s.BorderWidth, s.BorderColor, s);
+                if (!_bgMat) _bgMat = new Material(Shader.Find("UI/ProceduralLayer"));
+                _bgLayer.material = _bgMat;
+
+                _bgLayer.sprite = _bgSprite;
+                if (_bgSprite != null)
+                {
+                    _bgMat.SetTexture("_MainTex", _bgSprite.texture);
+                }
+                else
+                {
+                    _bgMat.SetTexture("_MainTex", Texture2D.whiteTexture);
+                }
+
+                Color tint = (_bgSprite != null) ? Color.white : s.BackgroundColor;
+                UpdateMat(_bgLayer, _bgMat, tint, s.Radius, s.BorderWidth, s.BorderColor, s);
                 if (_baseImage && _baseImage.enabled) _baseImage.enabled = false;
             } else {
                 if (_bgLayer && _bgLayer.gameObject.activeSelf) _bgLayer.gameObject.SetActive(false);
                 if (_baseImage && !_baseImage.enabled) _baseImage.enabled = true;
             }
         }
-        
-        // ...
-        private void CreateShadowLayer() {
-             _shadowLayer = CreateLayer("_ProceduralShadow"); _shadowLayer.transform.SetAsFirstSibling();
-             _shadowLayer.raycastTarget = false;
-             _shadowMat = new Material(Shader.Find("UI/ProceduralLayer")); _shadowLayer.material = _shadowMat;
+
+        private Image FindOrCreateLayer(string n)
+        {
+            var t = _owner.transform.Find(n);
+            if (t != null) return t.GetComponent<Image>();
+
+            var go = new GameObject(n);
+            go.transform.SetParent(_owner.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.sizeDelta = Vector2.zero;
+            var img = go.AddComponent<Image>();
+            img.raycastTarget = (n == "_ProceduralBG");
+            return img;
         }
-        private void CreateBgLayer() {
-             _bgLayer = CreateLayer("_ProceduralBG");
-             if(_shadowLayer) _bgLayer.transform.SetSiblingIndex(1); else _bgLayer.transform.SetAsFirstSibling();
-             _bgLayer.raycastTarget = true;
-             _bgMat = new Material(Shader.Find("UI/ProceduralLayer")); _bgLayer.material = _bgMat;
-        }
-        private Image CreateLayer(string n) {
-             var go = new GameObject(n); go.transform.SetParent(transform, false);
-             var rt = go.AddComponent<RectTransform>(); rt.anchorMin=Vector2.zero; rt.anchorMax=Vector2.one; rt.sizeDelta=Vector2.zero;
-             return go.AddComponent<Image>();
-        }
+
         private void UpdateMat(Image img, Material mat, Color col, float rad, float borderW, Color borderC, StyleState s) {
             if(!mat) return;
             mat.SetColor("_Color", col); mat.SetFloat("_Radius", rad);
             mat.SetFloat("_BorderWidth", borderW); mat.SetColor("_BorderColor", borderC);
-            var r = img.rectTransform.rect; mat.SetFloat("_Width", r.width); mat.SetFloat("_Height", r.height);
+            
+            // USE OWNER RECT for stability (the layer might not have updated its anchors yet)
+            var r = _rect != null ? _rect.rect : img.rectTransform.rect;
+            mat.SetFloat("_Width", r.width); mat.SetFloat("_Height", r.height);
         }
     }
 }

@@ -8,13 +8,10 @@ using Component = UnityEngine.Component;
 
 namespace UIFramework
 {
-    // THE BUNDLE: Enforce the full toolset on every element
     [RequireComponent(typeof(UIIdentity))]
     [RequireComponent(typeof(Canvas))]
     [RequireComponent(typeof(GraphicRaycaster))]
     [RequireComponent(typeof(CanvasGroup))]
-    [RequireComponent(typeof(UIStyle))]
-    [RequireComponent(typeof(UIAnimation))]
     public abstract class UIBase : MonoBehaviour
     {
         // --- Dependencies ---
@@ -80,11 +77,12 @@ namespace UIFramework
             Canvas = GetComponent<Canvas>();
             Raycaster = GetComponent<GraphicRaycaster>();
             CanvasGroup = GetComponent<CanvasGroup>();
-            StyleComponent = GetComponent<UIStyle>();
-            Animation = GetComponent<UIAnimation>();
+            StyleComponent = new UIStyle(this);
+            Animation = new UIAnimation(StyleComponent);
             
             // 2. Polymorphic Setup (Views vs Components)
             ConfigureCanvas();
+            Identity.OnUpdateIdentity += RefreshStyle;
 
 
             if (UnityEngine.Application.isPlaying)
@@ -93,7 +91,12 @@ namespace UIFramework
                 gameObject.SetActive(false);
             }
         }
-        
+
+        private void OnDestroy()
+        {
+            Identity.OnUpdateIdentity -= RefreshStyle;
+        }
+
 
         protected virtual void OnEnable()
         {
@@ -153,16 +156,21 @@ namespace UIFramework
             if (instant)
             {
                 Animation.PlayState("normal");
+                foreach (var uiComponent in _uiComponents)
+                {
+                    await uiComponent.Show(instant);
+                }
             }
             else
             {
                 // Play container animation and children simultaneously
                 Animation.PlayShow();
+                foreach (var uiComponent in _uiComponents)
+                {
+                    await uiComponent.Show(instant);
+                }
             }
-            foreach (var uiComponent in _uiComponents)
-            {
-                await uiComponent.Show(instant);
-            }
+            
         }
 
         public async UniTask Hide(bool instant = false)

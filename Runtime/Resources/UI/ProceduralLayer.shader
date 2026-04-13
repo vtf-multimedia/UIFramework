@@ -1,8 +1,8 @@
-﻿Shader "UI/ProceduralLayer"
+Shader "UI/ProceduralLayer"
 {
     Properties
     {
-        [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
+        _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color ("Tint", Color) = (1,1,1,1)
         
         _Width ("Width", Float) = 100
@@ -56,6 +56,7 @@
             struct appdata_t { float4 vertex : POSITION; float4 color : COLOR; float2 texcoord : TEXCOORD0; };
             struct v2f { float4 vertex : SV_POSITION; fixed4 color : COLOR; float2 texcoord : TEXCOORD0; float4 worldPosition : TEXCOORD1; };
 
+            sampler2D _MainTex;
             fixed4 _Color;
             fixed4 _BorderColor;
             float _Width;
@@ -96,7 +97,8 @@
                     borderAlpha = alpha - innerShape;
                 }
 
-                fixed4 fill = IN.color; 
+                fixed4 texColor = tex2D(_MainTex, IN.texcoord);
+                fixed4 fill = texColor * IN.color; 
                 fixed4 finalColor = lerp(fill, _BorderColor, step(0.5, borderAlpha));
                 finalColor.a *= alpha;
                 finalColor.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);

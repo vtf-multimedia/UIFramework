@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using PrimeTween; 
 using System.Collections.Generic;
@@ -14,6 +14,7 @@ namespace UIFramework
         public LayoutItemDef? layoutItem;
         
         public string backgroundColor;
+        public string backgroundImage;
         public float? opacity;
         public float? radius;
         public BorderDef? border;
@@ -92,6 +93,7 @@ namespace UIFramework
     {
         // Visuals
         public Color BackgroundColor; 
+        public string BackgroundImagePath;
         public float Radius; 
         public float Opacity; 
         public float BorderWidth; 
@@ -133,6 +135,7 @@ namespace UIFramework
 
             // 1. Visuals
             if (ParseColor(def.backgroundColor, out var bg)) s.BackgroundColor = bg;
+            if (!string.IsNullOrEmpty(def.backgroundImage)) s.BackgroundImagePath = def.backgroundImage;
             if (def.opacity.HasValue) s.Opacity = def.opacity.Value;
             if (def.radius.HasValue) s.Radius = def.radius.Value;
             
@@ -186,6 +189,7 @@ namespace UIFramework
             var r = new StyleState();
             // Visuals
             r.BackgroundColor = Color.Lerp(a.BackgroundColor, b.BackgroundColor, t);
+            r.BackgroundImagePath = t > 0.5f ? b.BackgroundImagePath : a.BackgroundImagePath;
             r.Radius = Mathf.Lerp(a.Radius, b.Radius, t);
             r.Opacity = Mathf.Lerp(a.Opacity, b.Opacity, t);
             

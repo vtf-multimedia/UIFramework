@@ -8,10 +8,16 @@ namespace UIFramework.Demo
     public class DemoView : UIView
     {
         public override ViewType Type => ViewType.Screen;
-        
+        [SerializeField] private DemoComponent _demoComponentPrefab;
         [SerializeField] private TMP_Text _text;
-        [SerializeField] private List<DemoComponent> _demoComponents = new();
+        private DemoComponent _demoComponent;
 
+
+        protected override void Awake()
+        {
+            base.Awake();
+            _demoComponent = Instantiate(_demoComponentPrefab, transform);
+        }
 
         public void SetText(string text)
         {
@@ -20,6 +26,8 @@ namespace UIFramework.Demo
 
         protected override async UniTask OnShow()
         {
+            await base.OnShow();
+            await _demoComponent.Show();
             // foreach (var demoComponent in _demoComponents)
             // {
             //     await demoComponent.Show();
@@ -28,6 +36,8 @@ namespace UIFramework.Demo
 
         protected override async UniTask OnHide()
         {
+            await _demoComponent.Hide();
+            await base.OnHide();
             // foreach (var demoComponent in _demoComponents)
             // {
             //     await demoComponent.Hide();
