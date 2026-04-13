@@ -9,7 +9,6 @@ namespace UIFramework
     public class UIStyle
     {
         private readonly UIBase _owner;
-        private Image _bgLayer;
         private Image _shadowLayer;
         private Material _bgMat;
         private Material _shadowMat;
@@ -17,7 +16,8 @@ namespace UIFramework
         private LayoutElement _layout;
         private CanvasGroup _cg;
         private TextMeshProUGUI _text;
-        private Image _baseImage;
+        private Image _baseImage; // The procedural BG layer
+        private Image _ownerImage; // The original image on the owner GO
         private Sprite _bgSprite;
         private string _loadedBgPath;
 
@@ -39,7 +39,8 @@ namespace UIFramework
             _layout = _owner.GetComponent<LayoutElement>();
             _cg = _owner.GetComponent<CanvasGroup>();
             _text = _owner.GetComponent<TextMeshProUGUI>();
-            _baseImage = _owner.GetComponent<Image>();
+            _ownerImage = _owner.GetComponent<Image>();
+            _baseImage = FindOrCreateLayer("_ProceduralBG");
             
             CaptureInitialState();
             _isInitialized = true;
@@ -59,7 +60,7 @@ namespace UIFramework
                 InitialInspectorState.FlexibleWidth = _layout.flexibleWidth;
                 InitialInspectorState.FlexibleHeight = _layout.flexibleHeight;
             }
-            if (_baseImage) InitialInspectorState.BackgroundColor = _baseImage.color;
+            if (_ownerImage) InitialInspectorState.BackgroundColor = _ownerImage.color;
             if (_text) {
                 InitialInspectorState.TextColor = _text.color;
                 InitialInspectorState.FontSize = _text.fontSize;
@@ -173,16 +174,16 @@ namespace UIFramework
 
             bool needBg = s.BackgroundColor.a > 0.001f || s.BorderWidth > 0 || !string.IsNullOrEmpty(s.BackgroundImagePath);
             if (needBg) {
-                if (!_bgLayer) _bgLayer = FindOrCreateLayer("_ProceduralBG");
-                if (!_bgLayer.gameObject.activeSelf) _bgLayer.gameObject.SetActive(true);
+                if (!_baseImage) _baseImage = FindOrCreateLayer("_ProceduralBG");
+                if (!_baseImage.gameObject.activeSelf) _baseImage.gameObject.SetActive(true);
                 
                 int targetIndex = (_shadowLayer && _shadowLayer.gameObject.activeSelf) ? 1 : 0;
-                if (_bgLayer.transform.GetSiblingIndex() != targetIndex) _bgLayer.transform.SetSiblingIndex(targetIndex);
+                if (_baseImage.transform.GetSiblingIndex() != targetIndex) _baseImage.transform.SetSiblingIndex(targetIndex);
 
                 if (!_bgMat) _bgMat = new Material(Shader.Find("UI/ProceduralLayer"));
-                _bgLayer.material = _bgMat;
+                _baseImage.material = _bgMat;
 
-                _bgLayer.sprite = _bgSprite;
+                _baseImage.sprite = _bgSprite;
                 if (_bgSprite != null)
                 {
                     _bgMat.SetTexture("_MainTex", _bgSprite.texture);
@@ -193,14 +194,14 @@ namespace UIFramework
                 }
 
                 Color tint = (_bgSprite != null) ? Color.white : s.BackgroundColor;
-                UpdateMat(_bgLayer, _bgMat, tint, s.Radius, s.BorderWidth, s.BorderColor, s);
+                UpdateMat(_baseImage, _bgMat, tint, s.Radius, s.BorderWidth, s.BorderColor, s);
                 _bgMat.SetFloat("_EdgeSoftness", 1f);
                 _bgMat.SetFloat("_Margin", 0f);
                 
-                if (_baseImage && _baseImage.enabled) _baseImage.enabled = false;
+                if (_ownerImage && _ownerImage.enabled) _ownerImage.enabled = false;
             } else {
-                if (_bgLayer && _bgLayer.gameObject.activeSelf) _bgLayer.gameObject.SetActive(false);
-                if (_baseImage && !_baseImage.enabled) _baseImage.enabled = true;
+                if (_baseImage && _baseImage.gameObject.activeSelf) _baseImage.gameObject.SetActive(false);
+                if (_ownerImage && !_ownerImage.enabled) _ownerImage.enabled = true;
             }
         }
 
