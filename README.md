@@ -130,7 +130,7 @@ The style system supports variables, inheritance, and procedural rendering (Shad
 
 The framework generates two procedural images at runtime for every styled element:
 
-1. **_ProceduralBG:** Handles Background Color, Border, and Radius.
+1. **_ProceduralBG:** Handles Background Color/Tint, **Background Image**, Border, and Radius. Everything is automatically masked to the defined rounded corners.
 2. **_ProceduralShadow:** Handles Drop Shadows (Distance, Softness, Color).
 
 You do not need to assign Sprites. Just tweak the JSON.
@@ -223,9 +223,10 @@ These properties define the visual look of the UI element.
 |  |   `preferredHeight` | `float` | The preferred height for Layout Groups. |
 |  |   `flexibleWidth` | `float` | Weight for expanding width (0 = fixed, 1+ = expand). |
 |  |   `flexibleHeight` | `float` | Weight for expanding height. |
-| **Visuals** | `backgroundColor` | `Hex` | The fill color (e.g., `"#FF0000"` or `"#FF000088"`). |
+| **Visuals** | `backgroundColor` | `Hex` | The fill color or image tint (e.g., `"#FF0000"` or `"#FF000088"`). |
+|  | `backgroundImage` | `string` | Path relative to `StreamingAssets` (e.g., `"ui/panel_bg.png"`). |
 |  | `opacity` | `float` | The CanvasGroup alpha (0.0 to 1.0). |
-|  | `radius` | `float` | Corner radius for the procedural background. |
+|  | `radius` | `float` | Corner radius for the procedural background (clamped to size). |
 | **Border** | `border` | `Object` | Controls the procedural border. |
 |  |   `width` | `float` | Thickness of the border stroke. |
 |  |   `color` | `Hex` | Color of the border stroke. |
