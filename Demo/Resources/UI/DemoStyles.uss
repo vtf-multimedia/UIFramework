@@ -1,0 +1,33 @@
+/* 
+   Layout-specific styles that don't change with themes. 
+   Colors, Radius, and Spacing are handled by style.json.
+*/
+
+.main-container {
+    width: 100%;
+    height: 100%;
+}
+
+.hero-card {
+    align-items: center;
+    justify-content: center;
+}
+
+.header-text {
+    font-size: 48px;
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+}
+
+.sub-text {
+    font-size: 16px;
+    margin-bottom: 24px;
+    opacity: 0.7;
+}
+
+.element-base {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    transition: scale 0.2s ease-in-out;
+}

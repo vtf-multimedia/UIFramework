@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd"
+>
+    <!-- Use snake-case for IDs and classes -->
+    <ui:VisualElement name="main-container" class="main-container">
+        <ui:VisualElement name="hero-card" class="hero-card">
+            <ui:Label text="UI FRAMEWORK DEMO" class="header-text" />
+            <ui:Label text="Data-Driven UI Toolkit Architecture with Global Variables" class="sub-text" />
+            
+            <!-- This is where the custom element will be registered/applied -->
+            <ui:VisualElement name="action-btn" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
