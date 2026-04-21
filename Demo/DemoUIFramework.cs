@@ -1,5 +1,7 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
+using UISystem;
+using UISystem.Demo;
 using UnityEngine;
 
 namespace UIFramework.Demo
@@ -8,18 +10,16 @@ namespace UIFramework.Demo
     {
         private async void Start()
         {
-            var demoView =  UIManager.Instance.GetView<DemoView>("DemoView", 1);
-            await UniTask.WaitForSeconds(1);
-            demoView.SetText("Hello world");
-            await UIManager.Instance.Show(demoView);
+            var demoView = await UIManager.Instance.ShowViewAsync<UIDemoView>();
+            
         }
-
-
+        
+        
         private async void Update()
         {
             if (Input.GetKeyDown(KeyCode.J))
             {
-                UIManager.Instance.Hide("DemoView").Forget();
+                UIManager.Instance.HideViewAsync<UIDemoView>();
             }
         }
     }

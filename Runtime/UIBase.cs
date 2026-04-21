@@ -1,192 +1,129 @@
+using UnityEngine.UIElements;
 using UnityEngine;
-using UnityEngine.UI;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using Cysharp.Threading.Tasks;
-using Component = UnityEngine.Component;
 
-namespace UIFramework
+namespace UISystem
 {
-    [RequireComponent(typeof(Canvas))]
-    [RequireComponent(typeof(GraphicRaycaster))]
-    [RequireComponent(typeof(CanvasGroup))]
-    public abstract class UIBase : MonoBehaviour
+    /// <summary>
+    /// Pure C# base class for UI Toolkit Controllers with a fully asynchronous lifecycle.
+    /// Handles asset loading, lifecycle hooks, and common styling.
+    /// </summary>
+    public abstract class UIBase
     {
-        // --- Dependencies ---
-        public Canvas Canvas { get; private set; }
-        public GraphicRaycaster Raycaster { get; private set; }
-        public CanvasGroup CanvasGroup { get; private set; }
+        public VisualElement Root { get; protected set; }
+        public bool IsVisible => Root != null && Root.style.display == DisplayStyle.Flex;
 
-        // --- Child Tracking ---
-        [SerializeField] private List<UIComponent> _uiComponents = new();
+        // Path relative to Resources/
+        protected abstract string UxmlPath { get; }
 
-        [ContextMenu("Fetch Immediate UI Components")]
-        public void FetchUIComponents()
+        /// <summary>
+        /// Consolidates loading and wrapping into one async entry point.
+        /// </summary>
+        public async UniTask InitializeAsync(VisualElement parent)
         {
-            _uiComponents.Clear();
-            foreach (Transform child in transform)
+            if (parent == null) return;
+
+            var asset = await Resources.LoadAsync<VisualTreeAsset>(UxmlPath) as VisualTreeAsset;
+            if (asset == null)
             {
-                var component = child.GetComponent<UIComponent>();
-                if (component != null)
+                Debug.LogError($"[UIBase] Failed to load VisualTreeAsset at path: Resources/{UxmlPath}");
+                return;
+            }
+
+            Root = asset.Instantiate();
+            if (string.IsNullOrEmpty(Root.name)) Root.name = GetType().Name;
+            Root.style.flexGrow = 1;
+            parent.Add(Root);
+
+            QueryElements();
+            BindEvents();
+            
+            StyleManager.Instance.Register(this);
+            await OnInitializeAsync();
+        }
+
+        protected virtual UniTask OnInitializeAsync() => UniTask.CompletedTask;
+
+        protected abstract void QueryElements();
+        protected abstract void BindEvents();
+        protected abstract void UnbindEvents();
+
+        public virtual void RefreshStyles()
+        {
+            if (Root == null) return;
+            StyleManager.Instance.ApplyThemeRecursive(Root);
+        }
+
+        public async UniTask ShowAsync()
+        {
+            if (Root == null) return;
+            Root.style.display = DisplayStyle.Flex;
+            await OnShowAsync();
+        }
+
+        public async UniTask HideAsync()
+        {
+            if (Root == null) return;
+            await OnHideAsync();
+            Root.style.display = DisplayStyle.None;
+        }
+
+        protected virtual async UniTask OnShowAsync()
+        {
+            var rule = StyleManager.Instance.GetStyle("#" + Root.name);
+            if (rule?.animation?.enter != null)
+            {
+                // 1. Setup Initial State
+                var baseState = StyleState.Default;
+                if (rule.animation.initial?.style != null)
                 {
-                    _uiComponents.Add(component);
+                    var initialState = StyleState.Merge(baseState, rule.animation.initial.style);
+                    UIStyleBridge.Apply(Root, initialState);
                 }
+
+                // 2. Animate to Enter State
+                var toState = StyleState.Merge(baseState, rule.animation.enter.style);
+                var fromState = rule.animation.initial?.style != null 
+                    ? StyleState.Merge(baseState, rule.animation.initial.style) 
+                    : baseState;
+
+                await UIAnimation.AnimateAsync(Root, fromState, toState, rule.animation.enter.transition);
             }
-#if UNITY_EDITOR
-            UnityEditor.EditorUtility.SetDirty(this);
-#endif
         }
 
-        [ContextMenu("Fetch All UI Components (Deep)")]
-        public void FetchUIComponentsDeep()
+        protected virtual async UniTask OnHideAsync()
         {
-            _uiComponents.Clear();
-            _uiComponents.AddRange(GetComponentsInChildren<UIComponent>(true));
-            _uiComponents.Remove(this as UIComponent); // Remove self if this is a UIComponent
-#if UNITY_EDITOR
-            UnityEditor.EditorUtility.SetDirty(this);
-#endif
+            var rule = StyleManager.Instance.GetStyle("#" + Root.name);
+            if (rule?.animation?.exit != null)
+            {
+                var baseState = StyleState.Default;
+                var fromState = StyleState.Merge(baseState, rule.baseStyle);
+                var toState = StyleState.Merge(baseState, rule.animation.exit.style);
+
+                await UIAnimation.AnimateAsync(Root, fromState, toState, rule.animation.exit.transition);
+            }
         }
 
-        [ContextMenu("Show")]
-        public void ShowUI() => Show(false).Forget();
-
-        [ContextMenu("Hide")]
-        public void HideUI() => Hide(false).Forget();
-
-
-        // --- State Flags ---
-
-        public bool IsVisible { get; protected set; }
-        public bool IsHovered { get; protected set; }
-        public bool IsPressed { get; protected set; }
-        public bool IsSelected { get; protected set; }
-        public bool IsChecked { get; protected set; }
-
-        public event Action OnStateChanged;
-
-        protected virtual void Awake()
+        protected T Q<T>(string name = null) where T : VisualElement
         {
-            // 1. Fetch Dependencies
-            Canvas = GetComponent<Canvas>();
-            Raycaster = GetComponent<GraphicRaycaster>();
-            CanvasGroup = GetComponent<CanvasGroup>();
+            if (Root == null) return null;
+            return Root.Q<T>(name);
+        }
+
+        /// <summary>
+        /// Final cleanup and removal from hierarchy.
+        /// </summary>
+        public async UniTask ReleaseAsync()
+        {
+            UnbindEvents();
+            await OnReleaseAsync();
             
-            // 2. Polymorphic Setup (Views vs Components)
-            ConfigureCanvas();
-
-            if (UnityEngine.Application.isPlaying)
-            {
-                IsVisible = false;
-                gameObject.SetActive(false);
-            }
+            StyleManager.Instance.Unregister(this);
+            Root?.RemoveFromHierarchy();
+            Root = null;
         }
 
-        protected virtual void OnEnable() { }
-        protected virtual void OnDisable() { }
-        protected virtual void OnDestroy() { }
-
-        // --- ABSTRACT MEMBERS ---
-
-        /// <summary>
-        /// Defines how this element sits in the sorting hierarchy.
-        /// (e.g. Views override sorting, Components inherit it)
-        /// </summary>
-        protected abstract void ConfigureCanvas();
-
-        /// <summary>
-        /// Logic hook called BEFORE the show animation starts.
-        /// Use this for data binding, resetting scroll views, etc.
-        /// </summary>
-        protected abstract UniTask OnShow();
-
-        /// <summary>
-        /// Logic hook called BEFORE the hide animation starts.
-        /// Use this for cleanup, saving state, etc.
-        /// </summary>
-        protected abstract UniTask OnHide();
-
-        // ===================================================================================
-        // 1. PUBLIC ASYNC API (Lifecycle)
-        // ===================================================================================
-
-        public async UniTask Show(bool instant = false)
-        {
-            if (IsVisible && gameObject.activeSelf) return;
-
-            IsVisible = true;
-            gameObject.SetActive(true);
-
-            // 1. Force Layout Rebuild (Critical for correct positioning/sizing)
-            if (Canvas != null) Canvas.ForceUpdateCanvases();
-
-            // 2. User Logic Hook
-            await OnShow();
-            
-            // 3. Chain Children
-            foreach (var uiComponent in _uiComponents)
-            {
-                await uiComponent.Show(instant);
-            }
-        }
-
-        public async UniTask Hide(bool instant = false)
-        {
-            if (!IsVisible && !gameObject.activeSelf) return;
-
-            IsVisible = false;
-
-            foreach (var uiComponent in _uiComponents)
-            {
-                await uiComponent.Hide(instant);
-            }
-
-            // 1. User Logic Hook
-            await OnHide();
-
-            // 2. Deactivate
-            gameObject.SetActive(false);
-        }
-
-        // ===================================================================================
-        // 2. INTERACTION & UTILITY
-        // ===================================================================================
-
-        protected void SetState(string stateName, bool value)
-        {
-            switch (stateName)
-            {
-                case "hover": IsHovered = value; break;
-                case "press": IsPressed = value; break;
-                case "select": IsSelected = value; break;
-                case "check": IsChecked = value; break;
-            }
-
-            NotifyStateChange();
-        }
-
-        public void SetSortingOrder(int order)
-        {
-            if (Canvas != null)
-            {
-                Canvas.overrideSorting = true; // Required for nested canvases to sort independently
-                Canvas.sortingOrder = order;
-            }
-        }
-
-        protected void NotifyStateChange()
-        {
-            OnStateChanged?.Invoke();
-        }
-
-        public virtual string ResolveStateKey()
-        {
-            if (IsChecked) return "check";
-            if (IsPressed) return "press";
-            if (IsHovered) return "hover";
-            if (IsSelected) return "select";
-            return "normal";
-        }
+        protected virtual UniTask OnReleaseAsync() => UniTask.CompletedTask;
     }
-}
+}

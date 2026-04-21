@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd"
+>
+    <!-- Use snake-case for IDs -->
+    <ui:Button name="button-root" class="element-base">
+        <ui:VisualElement name="button-icon" />
+        <ui:Label name="button-text" text="Demo Button" />
+    </ui:Button>
+</ui:UXML>
