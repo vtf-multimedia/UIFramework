@@ -49,11 +49,11 @@ namespace UIFramework.Demo
         {
             if (Input.GetKeyDown(KeyCode.I))
             {
-                _demoComponent.Identity.SetID("demoComponent-selected");   
+                _demoComponent.GetComponent<UIIdentity>().SetID("demoComponent-selected");   
             }
             else if (Input.GetKeyDown(KeyCode.O))
             {
-                _demoComponent.Identity.SetID("demoComponent");
+                _demoComponent.GetComponent<UIIdentity>().SetID("demoComponent");
             }
         }
     }

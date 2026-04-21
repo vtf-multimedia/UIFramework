@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using UnityEngine;
@@ -100,6 +100,7 @@ namespace UIFramework
                     case "hover":   target.Hover = ParseState((JObject)prop.Value); break;
                     case "press":   target.Press = ParseState((JObject)prop.Value); break;
                     case "check":  target.Check = ParseState((JObject)prop.Value); break;
+                    case "select": target.Select = ParseState((JObject)prop.Value); break;
                 }
             }
         }

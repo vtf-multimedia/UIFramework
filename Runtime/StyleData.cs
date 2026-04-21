@@ -69,6 +69,7 @@ namespace UIFramework
         public StateDef Press;
         public StateDef Animate; // Target state for Idle Loop
         public StateDef Check;
+        public StateDef Select; // For input fields and focus
         
     }
 

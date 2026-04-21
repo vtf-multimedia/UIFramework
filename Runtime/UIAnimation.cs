@@ -7,6 +7,7 @@ namespace UIFramework
 {
     public class UIAnimation
     {
+        /*
         private UIStyle _style;
         private AnimationDef _config;
         
@@ -251,5 +252,7 @@ namespace UIFramework
                 default: return (false, AnimationState.Normal);
             }
         }
+        */
+    // }
     }
 }

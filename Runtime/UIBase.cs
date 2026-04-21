@@ -8,19 +8,15 @@ using Component = UnityEngine.Component;
 
 namespace UIFramework
 {
-    [RequireComponent(typeof(UIIdentity))]
     [RequireComponent(typeof(Canvas))]
     [RequireComponent(typeof(GraphicRaycaster))]
     [RequireComponent(typeof(CanvasGroup))]
     public abstract class UIBase : MonoBehaviour
     {
         // --- Dependencies ---
-        public UIIdentity Identity { get; private set; }
         public Canvas Canvas { get; private set; }
         public GraphicRaycaster Raycaster { get; private set; }
         public CanvasGroup CanvasGroup { get; private set; }
-        public UIStyle StyleComponent { get; private set; }
-        public UIAnimation Animation { get; private set; }
 
         // --- Child Tracking ---
         [SerializeField] private List<UIComponent> _uiComponents = new();
@@ -73,17 +69,12 @@ namespace UIFramework
         protected virtual void Awake()
         {
             // 1. Fetch Dependencies
-            Identity = GetComponent<UIIdentity>();
             Canvas = GetComponent<Canvas>();
             Raycaster = GetComponent<GraphicRaycaster>();
             CanvasGroup = GetComponent<CanvasGroup>();
-            StyleComponent = new UIStyle(this);
-            Animation = new UIAnimation(StyleComponent);
             
             // 2. Polymorphic Setup (Views vs Components)
             ConfigureCanvas();
-            Identity.OnUpdateIdentity += RefreshStyle;
-
 
             if (UnityEngine.Application.isPlaying)
             {
@@ -92,23 +83,9 @@ namespace UIFramework
             }
         }
 
-        private void OnDestroy()
-        {
-            Identity.OnUpdateIdentity -= RefreshStyle;
-        }
-
-
-        protected virtual void OnEnable()
-        {
-            if (StyleManager.Instance != null)
-                StyleManager.Instance.OnThemeChanged += OnHotReload;
-        }
-
-        protected virtual void OnDisable()
-        {
-            if (StyleManager.Instance != null)
-                StyleManager.Instance.OnThemeChanged -= OnHotReload;
-        }
+        protected virtual void OnEnable() { }
+        protected virtual void OnDisable() { }
+        protected virtual void OnDestroy() { }
 
         // --- ABSTRACT MEMBERS ---
 
@@ -141,36 +118,17 @@ namespace UIFramework
             IsVisible = true;
             gameObject.SetActive(true);
 
-            // 1. Prepare
-            // Animation.Stop();
-
-            // 2. Apply Style (Snap visuals to "Start" state)
-            RefreshStyle();
-
-            // 3. Force Layout Rebuild (Critical for correct positioning/sizing)
+            // 1. Force Layout Rebuild (Critical for correct positioning/sizing)
             if (Canvas != null) Canvas.ForceUpdateCanvases();
 
-            // 4. User Logic Hook
+            // 2. User Logic Hook
             await OnShow();
             
-            if (instant)
+            // 3. Chain Children
+            foreach (var uiComponent in _uiComponents)
             {
-                // Animation.PlayState("normal");
-                foreach (var uiComponent in _uiComponents)
-                {
-                    await uiComponent.Show(instant);
-                }
+                await uiComponent.Show(instant);
             }
-            else
-            {
-                // Play container animation and children simultaneously
-                // Animation.PlayShow();
-                foreach (var uiComponent in _uiComponents)
-                {
-                    await uiComponent.Show(instant);
-                }
-            }
-            
         }
 
         public async UniTask Hide(bool instant = false)
@@ -187,58 +145,12 @@ namespace UIFramework
             // 1. User Logic Hook
             await OnHide();
 
-            // 2. Play Animation
-            if (!instant)
-            {
-                // await Animation.PlayHide();
-            }
-
-            // 3. Deactivate
+            // 2. Deactivate
             gameObject.SetActive(false);
         }
 
         // ===================================================================================
-        // 2. STYLING & HOT RELOAD
-        // ===================================================================================
-
-        private void OnHotReload()
-        {
-            // React to JSON changes instantly without full Show sequence
-            RefreshStyle();
-        }
-
-        protected void RefreshStyle()
-        {
-            if (StyleManager.Instance == null) return;
-
-            // Resolve Definition
-            var elementStyle = StyleManager.Instance.Resolve(Identity.ID, Identity.Classes);
-
-            if (elementStyle != null)
-            {
-                // A. Apply Static Base Style (Inspector + JSON Base)
-                if (elementStyle.BaseStyle != null)
-                {
-                    StyleComponent.ApplyDefinition(elementStyle.BaseStyle);
-                }
-
-                // B. Pass Animation Config to Animator (Hover/Press definitions)
-                if (elementStyle.Animation != null)
-                {
-                    Animation.Setup(elementStyle.Animation);
-                }
-                else
-                {
-                    Animation.Setup(null);
-                }
-                
-                // Force refresh current visual state (e.g. if we were hovering, update hover color)
-                NotifyStateChange();
-            }
-        }
-
-        // ===================================================================================
-        // 3. INTERACTION & UTILITY
+        // 2. INTERACTION & UTILITY
         // ===================================================================================
 
         protected void SetState(string stateName, bool value)
@@ -254,7 +166,6 @@ namespace UIFramework
             NotifyStateChange();
         }
 
-        // Fix CS1061: Ensure this is public so UIManager can call it on UIView
         public void SetSortingOrder(int order)
         {
             if (Canvas != null)
@@ -267,12 +178,6 @@ namespace UIFramework
         protected void NotifyStateChange()
         {
             OnStateChanged?.Invoke();
-
-            // Resolve priority (Check > Pressed > Hover > Normal)
-            string key = ResolveStateKey();
-
-            // Trigger Animation Tween
-            // Animation.PlayState(key);
         }
 
         public virtual string ResolveStateKey()
@@ -284,4 +189,4 @@ namespace UIFramework
             return "normal";
         }
     }
-}
+}

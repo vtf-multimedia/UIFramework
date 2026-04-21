@@ -55,6 +55,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _id: demoComponent
   _classes: []
+  InitialInspectorState:
+    BackgroundColor: {r: 0, g: 0, b: 0, a: 0}
+    BackgroundImagePath: 
+    Radius: 0
+    Opacity: 0
+    BorderWidth: 0
+    BorderColor: {r: 0, g: 0, b: 0, a: 0}
+    ShadowColor: {r: 0, g: 0, b: 0, a: 0}
+    ShadowOffset: {x: 0, y: 0}
+    ShadowSoftness: 0
+    TextColor: {r: 0, g: 0, b: 0, a: 0}
+    FontSize: 0
+    CharacterSpacing: 0
+    Scale: {x: 0, y: 0}
+    Rotation: {x: 0, y: 0, z: 0}
+    SizeDelta: {x: 0, y: 0}
+    PreferredWidth: 0
+    PreferredHeight: 0
+    FlexibleWidth: 0
+    FlexibleHeight: 0
 --- !u!223 &3982047970703031246
 Canvas:
   m_ObjectHideFlags: 0
@@ -73,7 +93,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0

@@ -1,10 +1,11 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
 using System;
 
 namespace UIFramework
 {
+    [DefaultExecutionOrder(-100)]
     public class StyleManager : MonoBehaviour
     {
         public static StyleManager Instance { get; private set; }
@@ -54,9 +55,18 @@ namespace UIFramework
         public UIElementStyle Resolve(string id, List<string> classes)
         {
             if (_registry == null) return null;
-            if (!string.IsNullOrEmpty(id) && _registry.TryGetValue("#" + id, out var idStyle)) return idStyle;
-            if (classes != null) {
-                foreach (var c in classes) if (_registry.TryGetValue("." + c, out var clsStyle)) return clsStyle;
+            if (!string.IsNullOrEmpty(id))
+            {
+                string cleanId = "#" + id.TrimStart('#');
+                if (_registry.TryGetValue(cleanId, out var idStyle)) return idStyle;
+            }
+            if (classes != null) 
+            {
+                foreach (var c in classes) 
+                {
+                    string cleanClass = "." + c.TrimStart('.');
+                    if (_registry.TryGetValue(cleanClass, out var clsStyle)) return clsStyle;
+                }
             }
             return null;
         }
