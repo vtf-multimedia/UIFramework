@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Globalization;
+using UnityEngine.UIElements;
 
 namespace UISystem
 {
@@ -172,6 +173,7 @@ namespace UISystem
         public float bottom;
         public float left;
         public float right;
+        public Position position;
 
         public string backgroundImage;
 
@@ -191,6 +193,11 @@ namespace UISystem
             fontSize = 14f,
             width = -1,
             height = -1,
+            top = float.NaN,
+            bottom = float.NaN,
+            left = float.NaN,
+            right = float.NaN,
+            position = Position.Relative,
             shadowColor = Color.clear,
             textShadowColor = Color.clear
         };
@@ -270,6 +277,9 @@ namespace UISystem
             if (def.rotation.HasValue) s.rotation = def.rotation.Value;
 
             // Position
+            if (!string.IsNullOrEmpty(def.position) && Enum.TryParse<Position>(def.position, true, out var pos))
+                s.position = pos;
+
             if (ParseFloat(def.top, out var pTop)) s.top = pTop;
             if (ParseFloat(def.bottom, out var pBottom)) s.bottom = pBottom;
             if (ParseFloat(def.left, out var pLeft)) s.left = pLeft;
@@ -336,10 +346,11 @@ namespace UISystem
             r.scale = Vector2.Lerp(a.scale, b.scale, t);
             r.rotation = Vector3.Lerp(a.rotation, b.rotation, t);
 
-            r.top = Mathf.Lerp(a.top, b.top, t);
-            r.bottom = Mathf.Lerp(a.bottom, b.bottom, t);
-            r.left = Mathf.Lerp(a.left, b.left, t);
-            r.right = Mathf.Lerp(a.right, b.right, t);
+            r.top = float.IsNaN(a.top) || float.IsNaN(b.top) ? b.top : Mathf.Lerp(a.top, b.top, t);
+            r.bottom = float.IsNaN(a.bottom) || float.IsNaN(b.bottom) ? b.bottom : Mathf.Lerp(a.bottom, b.bottom, t);
+            r.left = float.IsNaN(a.left) || float.IsNaN(b.left) ? b.left : Mathf.Lerp(a.left, b.left, t);
+            r.right = float.IsNaN(a.right) || float.IsNaN(b.right) ? b.right : Mathf.Lerp(a.right, b.right, t);
+            r.position = t > 0.5f ? b.position : a.position;
 
             r.backgroundImage = t > 0.5f ? b.backgroundImage : a.backgroundImage;
 
