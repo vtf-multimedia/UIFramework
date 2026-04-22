@@ -50,6 +50,11 @@ namespace UISystem
             if (StyleState.ParseFloat(def.opacity, out var op)) element.style.opacity = op;
             if (StyleState.ParseFloat(def.fontSize, out var fz)) element.style.fontSize = fz;
 
+            if (StyleState.ParseFloat(def.top, out var pTop)) element.style.top = pTop;
+            if (StyleState.ParseFloat(def.bottom, out var pBottom)) element.style.bottom = pBottom;
+            if (StyleState.ParseFloat(def.left, out var pLeft)) element.style.left = pLeft;
+            if (StyleState.ParseFloat(def.right, out var pRight)) element.style.right = pRight;
+
             if (!string.IsNullOrEmpty(def.position) && Enum.TryParse<Position>(def.position, true, out var pos))
                 element.style.position = pos;
             
@@ -143,10 +148,11 @@ namespace UISystem
             element.transform.rotation = Quaternion.Euler(s.rotation);
 
             // 9. POSITIONING
-            style.top = s.top;
-            style.bottom = s.bottom;
-            style.left = s.left;
-            style.right = s.right;
+            style.position = s.position;
+            if (!float.IsNaN(s.top)) style.top = s.top;
+            if (!float.IsNaN(s.bottom)) style.bottom = s.bottom;
+            if (!float.IsNaN(s.left)) style.left = s.left;
+            if (!float.IsNaN(s.right)) style.right = s.right;
 
             // 10. BACKGROUND IMAGE
             if (!string.IsNullOrEmpty(s.backgroundImage))

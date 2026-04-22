@@ -92,11 +92,24 @@ namespace UISystem
 
         public async UniTask<T> ShowViewAsync<T>() where T : UIView, new()
         {
+            T view = await GetOrSpawnViewAsync<T>();
+            await view.ShowAsync();
+            return view;
+        }
+
+        public async UniTask<T> SpawnViewAsync<T>() where T : UIView, new()
+        {
+            T view = await GetOrSpawnViewAsync<T>();
+            view.Root.style.display = DisplayStyle.None;
+            return view;
+        }
+
+        private async UniTask<T> GetOrSpawnViewAsync<T>() where T : UIView, new()
+        {
             Type type = typeof(T);
             
             if (_activeViews.TryGetValue(type, out var existingView))
             {
-                await existingView.ShowAsync();
                 return (T)existingView;
             }
 
@@ -106,7 +119,6 @@ namespace UISystem
             VisualElement container = _layerContainers[newView.Layer];
             await newView.InitializeAsync(container);
             
-            await newView.ShowAsync();
             return newView;
         }
 
