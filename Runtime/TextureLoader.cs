@@ -32,10 +32,16 @@ namespace UISystem
         private static async UniTask<Texture2D> LoadTexture(string relativePath)
         {
             // Resolve path for current platform
-            string fullPath = Path.Combine(Application.streamingAssetsPath, relativePath);
+            string fullPath = Path.Combine(Application.streamingAssetsPath, relativePath).Replace("\\", "/");
             
             // UnityWebRequest requires "file://" prefix on some platforms but not others
-            if (!fullPath.Contains("://")) fullPath = "file://" + fullPath;
+            if (!fullPath.Contains("://"))
+            {
+                if (fullPath.StartsWith("/"))
+                    fullPath = "file://" + fullPath;
+                else
+                    fullPath = "file:///" + fullPath;
+            }
 
             using (var request = UnityWebRequestTexture.GetTexture(fullPath))
             {
